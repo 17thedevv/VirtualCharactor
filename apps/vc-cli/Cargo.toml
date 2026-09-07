@@ -1,0 +1,11 @@
+[package]
+name = "vc-cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+vc-core = { path = "../../crates/vc-core" }
+vc-runtime = { path = "../../crates/vc-runtime" }
+vc-llm = { path = "../../crates/vc-llm" }
+vc-storage = { path = "../../crates/vc-storage" }
+uuid = { version = "1.8", features = ["v4"] }

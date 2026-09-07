@@ -1,0 +1,9 @@
+[workspace]
+members = [
+    "crates/vc-core",
+    "crates/vc-runtime",
+    "crates/vc-llm",
+    "crates/vc-storage",
+    "apps/vc-cli"
+]
+resolver = "2"

@@ -1,0 +1,11 @@
+D:\Project-17\VirtualCharactor\target\debug\deps\vc_storage-4dc0061874d4d8be.d: crates\vc-storage\src\lib.rs crates\vc-storage\src\repository.rs crates\vc-storage\src\sqlite.rs Cargo.toml
+
+D:\Project-17\VirtualCharactor\target\debug\deps\libvc_storage-4dc0061874d4d8be.rmeta: crates\vc-storage\src\lib.rs crates\vc-storage\src\repository.rs crates\vc-storage\src\sqlite.rs Cargo.toml
+
+crates\vc-storage\src\lib.rs:
+crates\vc-storage\src\repository.rs:
+crates\vc-storage\src\sqlite.rs:
+Cargo.toml:
+
+# env-dep:CLIPPY_ARGS=
+# env-dep:CLIPPY_CONF_DIR
