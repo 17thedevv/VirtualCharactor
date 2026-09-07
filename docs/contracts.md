@@ -6,47 +6,22 @@ Changes to any item marked **stable** require explicit approval from both develo
 
 ---
 
-## Identity Types
+## Stability Matrix
 
-| Type | Location | Owner | Stability | Notes |
-|------|----------|-------|-----------|-------|
-| `CharacterId` | `vc-core::character` | Shared | **Stable** | Newtype over `Uuid` |
-| `PersonalityId` | `vc-core::personality` | Dev A | **Stable** | Newtype over `Uuid` |
-| `MemoryId` | `vc-core::memory` | Dev A | **Stable** | Newtype over `Uuid` |
-| `RelationshipId` | `vc-core::relationship` | Dev A | **Stable** | Newtype over `Uuid` |
-| `DecisionId` | `vc-core::decision` | Dev A | **Stable** | Newtype over `Uuid` |
-
----
-
-## Domain Entities
-
-| Type | Location | Owner | Stability | Notes |
-|------|----------|-------|-----------|-------|
-| `Character` | `vc-core::character` | Shared | **Stable** | Aggregate root |
-| `Personality` | `vc-core::personality` | Dev A | **Stable** (structure) | Fields may grow, but existing fields must not be removed without review |
-| `Memory` | `vc-core::memory` | Dev A | Evolving | Internal representation may change as memory engine develops |
-| `MemoryType` | `vc-core::memory` | Dev A | **Stable** | Enum variants are additive only |
-| `MemoryQuery` | `vc-core::memory` | Dev A | Evolving | Query interface will expand |
-| `CharacterState` | `vc-core::state` | Dev A | **Stable** (structure) | Submodules: emotion, cognitive, behavior, goals, session |
-| `EmotionState` | `vc-core::state::emotion` | Dev A | Evolving | Will grow when emotion engine is built |
-| `Relationship` | `vc-core::relationship` | Dev A | **Stable** (structure) | Contains `RelationshipState` |
-| `RelationshipState` | `vc-core::relationship` | Dev A | Evolving | Per-relationship dynamic state |
-| `Context` | `vc-core::context` | Dev B | **Stable** | List of `ContextItem`s |
-| `ContextItem` | `vc-core::context` | Dev B | **Stable** | Source + content + priority |
-| `Decision` | `vc-core::decision` | Dev A | **Stable** | Contains `DecisionResult` |
-| `Action` | `vc-core::decision` | Dev A | **Stable** | action_type + payload |
-| `CharacterEvent` | `vc-core::event` | Shared | Evolving | Event variants will grow |
-
----
-
-## Trait Boundaries
-
-| Trait | Location | Owner | Stability | Approval to change |
-|-------|----------|-------|-----------|-------------------|
-| `DecisionEngine` | `vc-core::decision` | Dev A (trait), Dev B (mock in `vc-runtime`) | **Stable** | Both developers |
-| `LlmProvider` | `vc-llm::provider` | Dev B | **Stable** | Both developers |
-| `CharacterRepository` | `vc-storage::repository` | Dev B | **Stable** | Both developers |
-| `MemoryRepository` | `vc-storage::repository` | Dev B | **Stable** | Both developers |
+| Contract | Owner | Stability |
+|---|---|---|
+| Personality | Dev A | Stable |
+| CharacterState | Dev A | Stable |
+| EmotionState | Dev A | Stable |
+| Relationship | Dev A | Stable |
+| Memory | Dev A | Stable |
+| DecisionEngine | Dev A | Stable |
+| Context | Dev B | Stable |
+| LlmProvider | Dev B | Stable |
+| Storage repositories | Dev B | Stable |
+| Runtime orchestration | Dev B | Evolving |
+| Gemini adapter | Dev B | Provider-specific |
+| Learning components | Future | Evolving |
 
 ---
 
