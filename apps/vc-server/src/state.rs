@@ -6,6 +6,7 @@ use vc_core::personality::*;
 use vc_core::relationship::Relationship;
 use vc_core::state::CharacterState;
 use vc_llm::mock::MockLlmProvider;
+use vc_runtime::rule_decision_engine::RuleDecisionEngine;
 use vc_runtime::rule_emotion_engine::RuleBasedEmotionEngine;
 use vc_runtime::runtime::RuntimeEngine;
 
@@ -18,6 +19,7 @@ pub struct AppState {
     pub memories: Arc<RwLock<Vec<Memory>>>,
     pub runtime: Arc<RuntimeEngine>,
     pub emotion_engine: Arc<RuleBasedEmotionEngine>,
+    pub decision_engine: Arc<RuleDecisionEngine>,
 }
 
 impl AppState {
@@ -69,6 +71,7 @@ impl AppState {
         };
         let runtime = Arc::new(RuntimeEngine::new(llm));
         let emotion_engine = Arc::new(RuleBasedEmotionEngine::new());
+        let decision_engine = Arc::new(RuleDecisionEngine::new());
 
         Self {
             character: Arc::new(RwLock::new(character)),
@@ -78,6 +81,7 @@ impl AppState {
             memories: Arc::new(RwLock::new(memories)),
             runtime,
             emotion_engine,
+            decision_engine,
         }
     }
 

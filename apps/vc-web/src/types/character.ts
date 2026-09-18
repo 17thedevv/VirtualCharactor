@@ -104,15 +104,28 @@ export interface MemoryItem {
   importance: 'Low' | 'Medium' | 'High' | 'Critical' | string;
 }
 
+export interface BehaviorPolicyData {
+  tone: string;
+  verbosity: number;
+  initiative: number;
+  emotional_expression: number;
+  formality: number;
+}
+
 export interface DecisionCandidate {
   action: string;
+  description?: string;
   confidence: number;
+  score?: number;
   rationale?: string;
 }
 
 export interface DecisionTraceData {
   selected_action: string;
+  action_description?: string;
+  confidence?: number;
   reasoning: string;
+  policy?: BehaviorPolicyData | null;
   candidates: DecisionCandidate[];
 }
 

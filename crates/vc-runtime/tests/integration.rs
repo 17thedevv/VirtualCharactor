@@ -55,14 +55,25 @@ fn test_end_to_end_mock_flow() {
     let _char_id = CharacterId::new();
     let personality = build_test_personality();
     let state = build_test_state();
-    let context = build_test_context();
+    let _context = build_test_context();
 
     // 3. Decision phase: context + personality + state → decision
+    let decision_ctx = vc_core::decision::context::DecisionContext::new(
+        "Hello, who are you?",
+        None,
+        personality.clone(),
+        state.clone(),
+        None,
+        vec![],
+    );
     let decision = decision_engine
-        .make_decision(&context, &personality, &state)
+        .make_decision(&decision_ctx)
         .expect("MockDecisionEngine should never fail");
 
-    assert_eq!(decision.result.selected_action.action_type, "speak");
+    assert_eq!(
+        decision.result.selected_action.action_type,
+        vc_core::decision::action::ActionType::WarmGreeting
+    );
 
     // 4. LLM phase: decision → LLM request → LLM response
     let request = LlmRequest {
@@ -122,13 +133,23 @@ fn test_personality_is_not_state() {
 #[test]
 fn test_decision_is_not_generation() {
     let decision_engine = MockDecisionEngine;
-    let ctx = build_test_context();
     let personality = build_test_personality();
     let state = build_test_state();
+    let decision_ctx = vc_core::decision::context::DecisionContext::new(
+        "Hello, who are you?",
+        None,
+        personality.clone(),
+        state.clone(),
+        None,
+        vec![],
+    );
 
     // Decision answers "what should the character do?"
-    let decision = decision_engine.make_decision(&ctx, &personality, &state).unwrap();
-    assert_eq!(decision.result.selected_action.action_type, "speak");
+    let decision = decision_engine.make_decision(&decision_ctx).unwrap();
+    assert_eq!(
+        decision.result.selected_action.action_type,
+        vc_core::decision::action::ActionType::WarmGreeting
+    );
 
     // LLM generation answers "how should it be expressed?"
     let llm = MockLlmProvider {
@@ -136,13 +157,73 @@ fn test_decision_is_not_generation() {
     };
     let response = llm
         .generate_text(LlmRequest {
-            prompt: decision.result.selected_action.payload.clone(),
+            prompt: decision.result.selected_action.description.clone(),
             system_instruction: None,
         })
         .unwrap();
 
     // These are separate concerns
-    assert_ne!(decision.result.selected_action.payload, response.text);
+    assert_ne!(decision.result.selected_action.description, response.text);
+}
+
+#[test]
+fn test_rule_decision_engine_rich_scenarios() {
+    use vc_core::decision::action::ActionType;
+    use vc_core::decision::context::DecisionContext;
+    use vc_runtime::rule_decision_engine::RuleDecisionEngine;
+
+    let engine = RuleDecisionEngine::new();
+    let personality = build_test_personality();
+    let state = build_test_state();
+
+    // 1. Emotional distress -> EmotionalResonance
+    let ctx_distress = DecisionContext::new(
+        "Hôm nay mình mệt và buồn quá...",
+        None,
+        personality.clone(),
+        state.clone(),
+        None,
+        vec![],
+    );
+    let decision_distress = engine.make_decision(&ctx_distress).unwrap();
+    assert_eq!(
+        decision_distress.result.selected_action.action_type,
+        ActionType::EmotionalResonance
+    );
+    assert!(decision_distress.result.reasoning.to_lowercase().contains("thấu cảm"));
+    assert!(decision_distress.result.policy.is_some());
+
+    // 2. Accomplishment -> InspireEncourage
+    let ctx_accomplish = DecisionContext::new(
+        "Mình vừa hoàn thành xong toàn bộ kiến trúc Phase 1!",
+        None,
+        personality.clone(),
+        state.clone(),
+        None,
+        vec![],
+    );
+    let decision_accomplish = engine.make_decision(&ctx_accomplish).unwrap();
+    assert_eq!(
+        decision_accomplish.result.selected_action.action_type,
+        ActionType::InspireEncourage
+    );
+    assert!(decision_accomplish.result.reasoning.contains("cột mốc ý nghĩa"));
+
+    // 3. Technical question -> ThoughtfulExplanation
+    let ctx_tech = DecisionContext::new(
+        "Giải thích cho mình kiến trúc memory trong Rust hoạt động như thế nào?",
+        None,
+        personality.clone(),
+        state.clone(),
+        None,
+        vec![],
+    );
+    let decision_tech = engine.make_decision(&ctx_tech).unwrap();
+    assert_eq!(
+        decision_tech.result.selected_action.action_type,
+        ActionType::ThoughtfulExplanation
+    );
+    assert!(decision_tech.result.reasoning.contains("chiều sâu"));
 }
 
 #[test]

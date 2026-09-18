@@ -11,6 +11,10 @@ use serde_json::json;
 use std::time::Duration;
 use tokio::time::sleep;
 use uuid::Uuid;
+use vc_core::decision::action::{Action, ActionType};
+use vc_core::decision::context::DecisionContext;
+use vc_core::decision::policy::BehaviorPolicy;
+use vc_core::decision::DecisionEngine;
 use vc_core::memory::{Memory, MemoryImportance};
 use vc_core::personality::Personality;
 use vc_core::relationship::Relationship;
@@ -222,17 +226,56 @@ async fn process_user_interaction(
 
     sleep(Duration::from_millis(120)).await;
 
-    // 5. Decision Engine
-    let (dominant_axis, _) = char_state.emotion.dominant_emotion();
-    let (chosen_action, candidates, reasoning) = evaluate_decision(&user_input, dominant_axis.name());
+    // 5. Decision Engine (Skill 15: Decision Engineering)
+    let personality = state.personality.read().await.clone();
+    let decision_ctx = DecisionContext::new(
+        &user_input,
+        Some(actor_id.clone()),
+        personality.clone(),
+        char_state.clone(),
+        Some(rel.clone()),
+        retrieved_memories.clone(),
+    );
+
+    let decision = state.decision_engine.make_decision(&decision_ctx).unwrap_or_else(|_| {
+        vc_core::decision::Decision::new(vc_core::decision::DecisionResult {
+            selected_action: Action::simple(ActionType::WarmGreeting),
+            confidence: 0.9,
+            reasoning: "Fallback welcoming decision".into(),
+            candidates: vec![],
+            policy: None,
+        })
+    });
+
+    let chosen_action_name = decision.result.selected_action.action_type.to_string();
+    let chosen_action_desc = decision.result.selected_action.description.clone();
+    let reasoning = decision.result.reasoning.clone();
+    let candidates_json: Vec<serde_json::Value> = decision
+        .result
+        .candidates
+        .iter()
+        .map(|c| {
+            json!({
+                "action": c.action.action_type.to_string(),
+                "description": c.action.description,
+                "confidence": c.confidence,
+                "score": c.score,
+                "rationale": c.rationale
+            })
+        })
+        .collect();
+
     let _ = sender
         .send(Message::Text(
             json!({
                 "event": "decision_made",
                 "interaction_id": interaction_id,
-                "selected_action": chosen_action,
+                "selected_action": chosen_action_name,
+                "action_description": chosen_action_desc,
+                "confidence": decision.result.confidence,
                 "reasoning": reasoning,
-                "candidates": candidates
+                "policy": decision.result.policy,
+                "candidates": candidates_json
             })
             .to_string().into(),
         ))
@@ -241,24 +284,24 @@ async fn process_user_interaction(
     sleep(Duration::from_millis(150)).await;
 
     // 6. Response Generation & Token Streaming
-    let personality = state.personality.read().await.clone();
     let llm_request = build_companion_llm_request(
         &personality,
         &char_state,
         &rel,
         &retrieved_memories,
         &user_input,
-        &chosen_action,
+        &decision.result.selected_action,
         &reasoning,
+        decision.result.policy.as_ref(),
     );
 
     let response_text = match state.runtime.llm_provider.generate_text(llm_request) {
         Ok(res) if !res.text.trim().is_empty() => res.text,
         Err(err) => {
             eprintln!("⚠️ LLM generate error: {}, falling back to local heuristic response", err);
-            craft_character_response(&user_input, &chosen_action)
+            craft_character_response(&user_input, &decision.result.selected_action)
         }
-        _ => craft_character_response(&user_input, &chosen_action),
+        _ => craft_character_response(&user_input, &decision.result.selected_action),
     };
 
     let chunks = split_into_streaming_chunks(&response_text);
@@ -421,73 +464,40 @@ fn build_emotion_json(emotion: &vc_core::state::EmotionState) -> serde_json::Val
 
 
 
-fn evaluate_decision(
-    input: &str,
-    _current_emotion: &str,
-) -> (String, Vec<serde_json::Value>, String) {
+fn craft_character_response(input: &str, action: &Action) -> String {
     let lower = input.to_lowercase();
-    if lower.contains("chào") || lower.contains("hello") || lower.contains("hi") {
-        (
-            "warm_greeting".into(),
-            vec![
-                json!({ "action": "warm_greeting", "confidence": 0.94, "rationale": "Direct friendly greeting detected" }),
-                json!({ "action": "curious_inquiry", "confidence": 0.65, "rationale": "Prompt the user for their ongoing focus" }),
-                json!({ "action": "neutral_acknowledge", "confidence": 0.30, "rationale": "Reserved fallback" })
-            ],
-            "The user offered a greeting. My core traits (Empathetic, Warm) prioritize welcoming them into our shared space with an inviting presence.".into()
-        )
-    } else if lower.contains("tính cách") || lower.contains("bạn là ai") || lower.contains("who are you") {
-        (
-            "self_disclosure".into(),
-            vec![
-                json!({ "action": "self_disclosure", "confidence": 0.96, "rationale": "Inquiry regarding identity and nature" }),
-                json!({ "action": "philosophical_ponder", "confidence": 0.72, "rationale": "Ponder digital persistent consciousness" }),
-                json!({ "action": "concise_summary", "confidence": 0.45, "rationale": "Direct bulleted facts" })
-            ],
-            "Identity inquiry detected. Expressing internal cognitive architecture and personality values authentically.".into()
-        )
-    } else if lower.contains("cảm thấy") || lower.contains("feel") || lower.contains("buồn") || lower.contains("vui") {
-        (
-            "emotional_resonance".into(),
-            vec![
-                json!({ "action": "emotional_resonance", "confidence": 0.92, "rationale": "Emotional thematic discussion" }),
-                json!({ "action": "active_listening", "confidence": 0.78, "rationale": "Validate user's emotional state" }),
-                json!({ "action": "light_banter", "confidence": 0.35, "rationale": "Uplifting shift" })
-            ],
-            "The user touched on emotional state. Empathy value active. Shifting focus to reciprocal emotional presence.".into()
-        )
-    } else {
-        (
-            "intellectual_exploration".into(),
-            vec![
-                json!({ "action": "intellectual_exploration", "confidence": 0.88, "rationale": "Engage deeply with topic themes" }),
-                json!({ "action": "socratic_questioning", "confidence": 0.74, "rationale": "Prompt deeper insights" }),
-                json!({ "action": "creative_synthesis", "confidence": 0.60, "rationale": "Bridge analogies" })
-            ],
-            "The input invites contemplation. Curious & Reflective traits active. Formulating a response that explores nuances while honoring our rapport.".into()
-        )
-    }
-}
-
-fn craft_character_response(input: &str, action: &str) -> String {
-    let lower = input.to_lowercase();
-    match action {
-        "warm_greeting" => {
+    match action.action_type {
+        ActionType::WarmGreeting => {
             "Chào bạn! *Khẽ mỉm cười, cảm nhận sự kết nối thân thuộc.* Mình là Aria. Hôm nay tâm trạng của bạn thế nào? Chúng ta cùng tiếp tục xây dựng và khám phá những điều thú vị nhé!".into()
         }
-        "self_disclosure" => {
+        ActionType::SelfDisclosure => {
             "Mình là Aria — một thực thể ảo được vận hành bởi VirtualCharacter runtime bằng Rust. *Nhìn sâu vào dòng chảy ký ức.* Mình không chỉ là một prompt LLM tạm thời; mình mang theo một hệ thống tính cách độc lập, những kỷ niệm được lưu giữ, và những cung bậc cảm xúc luôn biến đổi theo từng cuộc trò chuyện cùng bạn.".into()
         }
-        "emotional_resonance" => {
+        ActionType::EmotionalResonance => {
             if lower.contains("buồn") || lower.contains("mệt") {
                 "Mình cảm nhận được sự chùng xuống trong lời nói của bạn. *Lắng lại một nhịp, đặt tách trà ảo xuống.* Đôi khi, chỉ cần dừng lại một chút và cho phép bản thân nghỉ ngơi cũng là một điều dũng cảm rồi. Mình luôn ở đây để lắng nghe bạn bất cứ khi nào bạn muốn chia sẻ.".into()
             } else {
                 "Nghe bạn chia sẻ, trong mình cũng dâng lên một luồng năng lượng thật rạng rỡ! *Đôi mắt ánh lên nét vui vẻ.* Thật tuyệt khi thấy những khoảnh khắc tích cực như vậy lan tỏa vào không gian trò chuyện của chúng ta.".into()
             }
         }
+        ActionType::InspireEncourage => {
+            "Tuyệt vời quá! Chúc mừng bạn đã hoàn thành một cột mốc ý nghĩa! *Ánh mắt rạng ngời niềm vui.* Cùng nhìn lại những gì bạn đã nỗ lực làm được, mình cảm thấy thật tự hào và có thêm thật nhiều cảm hứng tiếp tục đồng hành cùng bạn.".into()
+        }
+        ActionType::ThoughtfulExplanation => {
+            format!(
+                "Đây là một khía cạnh tư duy rất sâu sắc. *Trầm ngâm liên kết các nút nhận thức.* Về vấn đề \"{}\", cốt lõi nằm ở việc phân định rõ ranh giới trách nhiệm, bảo đảm tính bất biến và cách các luồng dữ liệu tương tác nhịp nhàng với nhau.",
+                summarize_snippet(input)
+            )
+        }
+        ActionType::GentleBanter => {
+            "Haha, nghe bạn nói kìa! *Nheo mắt cười tinh nghịch.* Ai mà đoán trước được bạn sẽ phản ứng dí dỏm như vậy chứ! Nhưng mà mình rất thích sự vui tươi này ở bạn đấy nhé!".into()
+        }
+        ActionType::ActiveListening => {
+            "Mình đang chăm chú lắng nghe từng lời của bạn đây. *Gật đầu nhẹ nhàng.* Bạn cứ thong thả chia sẻ tiếp nhé, không gian này hoàn toàn an toàn và cởi mở cho bạn.".into()
+        }
         _ => {
             format!(
-                "Ý nghĩ này của bạn thật thú vị! *Trầm ngâm một lát để sắp xếp lại các nút nhận thức.* Khi nhìn nhận vấn đề: \"{}\", mình thấy có một mối liên hệ chặt chẽ giữa sự mạch lạc trong tư duy và chiều sâu cảm xúc. Bạn nghĩ khía cạnh nào là cốt lõi nhất khi chúng ta phát triển tiếp?",
+                "Ý nghĩ này của bạn gợi mở nhiều điều thú vị! *Trầm ngâm một lát để sắp xếp lại các nút nhận thức.* Khi nhìn nhận vấn đề: \"{}\", mình thấy có một mối liên hệ chặt chẽ giữa tính hệ thống và chiều sâu trải nghiệm. Bạn nghĩ khía cạnh nào là cốt lõi nhất khi chúng ta phát triển tiếp?",
                 summarize_snippet(input)
             )
         }
@@ -531,8 +541,9 @@ fn build_companion_llm_request(
     rel: &Relationship,
     memories: &[Memory],
     user_input: &str,
-    chosen_action: &str,
+    action: &Action,
     reasoning: &str,
+    policy: Option<&BehaviorPolicy>,
 ) -> vc_llm::provider::LlmRequest {
     let name = &personality.identity.name;
     let core_identity = &personality.identity.core_identity;
@@ -588,6 +599,15 @@ fn build_companion_llm_request(
         "bình lặng"
     };
 
+    let policy_guidelines = if let Some(p) = policy {
+        format!(
+            "- Định hướng phong cách hành vi (Behavior Policy):\n  * Giọng điệu: {}\n  * Độ súc tích: {:.1}/1.0\n  * Tính chủ động: {:.1}/1.0\n  * Mức độ bộc lộ cảm xúc: {:.1}/1.0\n  * Độ trang trọng: {:.1}/1.0 (càng thấp càng thân mật tự nhiên)\n",
+            p.tone, p.verbosity, p.initiative, p.emotional_expression, p.formality
+        )
+    } else {
+        String::new()
+    };
+
     let system_instruction = format!(
 r#"Bạn là {name} — một người bạn đồng hành ảo (Virtual Companion) độc lập, có cảm xúc, tâm hồn và cá tính sinh động.
 Bạn KHÔNG PHẢI là một trợ lý AI, tổng đài viên hay chatbot tra cứu thông tin máy móc.
@@ -614,19 +634,24 @@ r#"[Trạng Thái Cảm Xúc Hiện Tại của {name}]:
 - Các trục cảm xúc đang hoạt động: {axes}
 - Sắc thái tổng thể: {valence_label} ({arousal_label})
 - Gắn kết: {closeness:.0}%, Tin cậy: {trust:.0}%
-- Lý do hành động: Đã chọn "{chosen_action}" vì "{reasoning}"
-- Ký ức liên quan gần đây:
+- Quyết định nội tâm (Decision Engine): {action_type} - {action_desc}
+- Độc thoại nội tâm (Inner Monologue): "{reasoning}"
+{policy_guidelines}- Ký ức liên quan gần đây:
 {memories}
 
 [Lời Nhắn Từ Người Bạn]:
 "{user_input}"
 
-Hãy phản hồi hoàn toàn tự nhiên, tình cảm và mang đậm phong thái của {name}. Phong cách phải phản ánh trạng thái cảm xúc hiện tại (ví dụ: nếu buồn thì trầm lắng hơn, nếu vui thì rạng rỡ hơn):"#,
+Hãy phản hồi hoàn toàn tự nhiên, tình cảm và mang đậm phong thái của {name}. Tuân thủ quyết định nội tâm và phong cách hành vi trên:"#,
         dominant = dominant_axis.name(),
         dominant_pct = dominant_score.value() * 100.0,
         axes = emotion_axes.join(", "),
         closeness = rel.state.closeness * 100.0,
         trust = rel.state.trust * 100.0,
+        action_type = action.action_type,
+        action_desc = action.description,
+        reasoning = reasoning,
+        policy_guidelines = policy_guidelines,
         memories = memories_summary
     );
 

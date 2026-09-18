@@ -36,14 +36,23 @@ fn main() {
 
     // 4. Create dummy entities for demonstration
     let char_id = CharacterId::new();
-    let context = Context { items: vec![] };
+    let _context = Context { items: vec![] };
     let personality = vc_core::personality::Personality::baseline_aria();
     let state = vc_core::state::CharacterState::default_aria();
+
+    let decision_ctx = vc_core::decision::context::DecisionContext::new(
+        "Hello from CLI",
+        None,
+        personality,
+        state,
+        None,
+        vec![],
+    );
 
     // 5. Execute flow: Context → Decision → LLM → Response
     println!("\n--- Executing Decision Cycle ---");
     let decision = decision_engine
-        .make_decision(&context, &personality, &state)
+        .make_decision(&decision_ctx)
         .unwrap();
     println!(
         "Decision: action={}, reasoning={}",

@@ -254,8 +254,15 @@ export const MindInspectorDrawer: React.FC<MindInspectorDrawerProps> = ({
             {decisionTrace ? (
               <>
                 <div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                    HÀNH ĐỘNG ĐÃ CHỌN (SELECTED ACTION)
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      HÀNH ĐỘNG ĐÃ CHỌN (SELECTED ACTION)
+                    </span>
+                    {decisionTrace.confidence !== undefined && (
+                      <span style={{ fontSize: '0.7rem', color: 'var(--accent-amber)', fontFamily: 'var(--font-mono)' }}>
+                        Tin cậy: {Math.round(decisionTrace.confidence * 100)}%
+                      </span>
+                    )}
                   </div>
                   <div
                     style={{
@@ -274,7 +281,31 @@ export const MindInspectorDrawer: React.FC<MindInspectorDrawerProps> = ({
                   >
                     <span>{decisionTrace.selected_action}</span>
                   </div>
+                  {decisionTrace.action_description && (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                      {decisionTrace.action_description}
+                    </div>
+                  )}
                 </div>
+
+                {decisionTrace.policy && (
+                  <div style={{ padding: '8px 10px', background: 'rgba(0, 0, 0, 0.2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                      CHÍNH SÁCH HÀNH VI (BEHAVIOR POLICY)
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', fontSize: '0.72rem' }}>
+                      <span style={{ background: 'rgba(5, 214, 158, 0.12)', color: 'var(--accent-cyan)', padding: '2px 6px', borderRadius: '4px' }}>
+                        Tone: {decisionTrace.policy.tone}
+                      </span>
+                      <span style={{ background: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-secondary)', padding: '2px 6px', borderRadius: '4px' }}>
+                        Verbosity: {Math.round(decisionTrace.policy.verbosity * 100)}%
+                      </span>
+                      <span style={{ background: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-secondary)', padding: '2px 6px', borderRadius: '4px' }}>
+                        Initiative: {Math.round(decisionTrace.policy.initiative * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
@@ -307,8 +338,8 @@ export const MindInspectorDrawer: React.FC<MindInspectorDrawerProps> = ({
                         key={idx}
                         style={{
                           display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
+                          flexDirection: 'column',
+                          gap: '2px',
                           fontSize: '0.76rem',
                           padding: '6px 8px',
                           borderRadius: 'var(--radius-xs)',
@@ -318,31 +349,38 @@ export const MindInspectorDrawer: React.FC<MindInspectorDrawerProps> = ({
                               : 'rgba(255, 255, 255, 0.02)',
                         }}
                       >
-                        <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>
-                          {cand.action}
-                        </span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div
-                            style={{
-                              width: '60px',
-                              height: '5px',
-                              background: 'rgba(255, 255, 255, 0.08)',
-                              borderRadius: 'var(--radius-full)',
-                              overflow: 'hidden',
-                            }}
-                          >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', fontWeight: cand.action === decisionTrace.selected_action ? 600 : 400 }}>
+                            {cand.action}
+                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <div
                               style={{
-                                width: `${Math.round(cand.confidence * 100)}%`,
-                                height: '100%',
-                                background: 'var(--accent-amber)',
+                                width: '60px',
+                                height: '5px',
+                                background: 'rgba(255, 255, 255, 0.08)',
+                                borderRadius: 'var(--radius-full)',
+                                overflow: 'hidden',
                               }}
-                            />
+                            >
+                              <div
+                                style={{
+                                  width: `${Math.round((cand.score ?? cand.confidence) * 100)}%`,
+                                  height: '100%',
+                                  background: 'var(--accent-amber)',
+                                }}
+                              />
+                            </div>
+                            <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontSize: '0.7rem' }}>
+                              {Math.round((cand.score ?? cand.confidence) * 100)}%
+                            </span>
                           </div>
-                          <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-                            {Math.round(cand.confidence * 100)}%
-                          </span>
                         </div>
+                        {cand.rationale && (
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                            {cand.rationale}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

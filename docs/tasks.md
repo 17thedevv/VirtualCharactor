@@ -161,7 +161,9 @@ Ví dụ:
 pub trait MemoryRetriever {
     fn retrieve(&self, query: &MemoryQuery) -> Result<Vec<Memory>>;
 }
-A5. Decision
+A5. Decision [DONE]
+
+(Đã hoàn tất toàn bộ Decision Domain Module, Action Types, DecisionCandidate, Scoring Heuristics, Inner Monologue Reasoning, BehaviorPolicy, RuleDecisionEngine và tích hợp Server/Web/CLI).
 
 Phụ trách:
 
