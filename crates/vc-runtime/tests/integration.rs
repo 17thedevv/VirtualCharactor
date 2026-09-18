@@ -452,4 +452,93 @@ fn test_context_builder_and_budget_governance() {
     assert!(rendered.contains("Hôm nay chúng ta làm gì tiếp theo?"));
 }
 
+#[test]
+fn test_runtime_orchestrator_complete_lifecycle() {
+    use std::sync::Arc;
+    use vc_core::character::CharacterId;
+    use vc_core::decision::action::ActionType;
+    use vc_llm::mock::MockLlmProvider;
+    use vc_runtime::runtime::RuntimeEngine;
+
+    // 1. Setup RuntimeEngine with MockLlmProvider
+    let llm = Arc::new(MockLlmProvider {
+        default_response: "Aria responds with warmth and joy.".into(),
+    });
+    let runtime = RuntimeEngine::new(llm);
+
+    // 2. Setup domain entities
+    let char_id = CharacterId::new();
+    let personality = build_test_personality();
+    let mut state = build_test_state();
+    let mut relationship = vc_core::relationship::Relationship::new_companion(char_id, "user-orchestrator");
+    let mut memories = vec![
+        vc_core::memory::Memory::new_core("Core awakened memory", 1000),
+    ];
+
+    let initial_interaction_count = relationship.interaction_count;
+    let initial_memory_count = memories.len();
+    let initial_joy = state.emotion.joy.value();
+
+    // 3. Process Interaction
+    let outcome = runtime
+        .process_interaction(
+            char_id,
+            "user-orchestrator",
+            "Chào Aria, hôm nay mình vui lắm vì đã xong B2!",
+            &personality,
+            &mut state,
+            &mut relationship,
+            &mut memories,
+            1200,
+        )
+        .expect("process_interaction must succeed");
+
+    // 4. Verify Outcome
+    assert_eq!(outcome.response_text, "Aria responds with warmth and joy.");
+    assert_eq!(outcome.decision.result.selected_action.action_type, ActionType::EmotionalResonance);
+    assert!(outcome.context_breakdown.total_used > 50);
+
+    // 5. Verify State Feedback Loop
+    assert!(state.emotion.joy.value() > initial_joy, "Joy should increase after cheerful message");
+
+    // 6. Verify Relationship Evolution
+    assert_eq!(relationship.interaction_count, initial_interaction_count + 1);
+    assert_eq!(relationship.last_interaction_ts, 1200);
+
+    // 7. Verify Memory Formation
+    assert_eq!(memories.len(), initial_memory_count + 1);
+    assert!(memories.last().unwrap().content.contains("Aria responded"));
+
+    // 8. Verify Session Tracking
+    let session_mgr = runtime.session_manager.read().unwrap();
+    let session = session_mgr.get_session(char_id, "user-orchestrator").expect("Session must exist");
+    assert_eq!(session.interaction_count, 1);
+    assert!(session.is_active());
+}
+
+#[test]
+fn test_session_lifecycle_and_timeout() {
+    use vc_core::character::CharacterId;
+    use vc_runtime::session::SessionManager;
+
+    let mut manager = SessionManager::new();
+    let char_id = CharacterId::new();
+
+    // 1. Create and touch
+    let session = manager.get_or_create(char_id, "user-timeout", 1000);
+    session.touch(1000);
+    assert_eq!(session.status, vc_runtime::session::SessionStatus::Active);
+
+    // 2. Timeout check at t=1300 with 200s idle threshold -> becomes Idle
+    manager.check_idle_timeouts(1300, 200);
+    let session = manager.get_session(char_id, "user-timeout").unwrap();
+    assert_eq!(session.status, vc_runtime::session::SessionStatus::Idle);
+
+    // 3. Completing session
+    manager.complete_session(char_id, "user-timeout");
+    let session = manager.get_session(char_id, "user-timeout").unwrap();
+    assert_eq!(session.status, vc_runtime::session::SessionStatus::Completed);
+    assert!(!session.is_active());
+}
+
 

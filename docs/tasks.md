@@ -255,43 +255,39 @@ critical > high > medium > low
 
 và có budget.
 
-B2. Runtime
+B2. Runtime [DONE]
 
-Xây interaction lifecycle.
+(Đã hoàn tất toàn bộ Interaction Lifecycle, CharacterSession & SessionManager, State Feedback, Memory Consolidation, và tích hợp Server/CLI/Web).
 
-Ví dụ:
+Phụ trách:
 
 CharacterSession
-Interaction
-Runtime
+SessionId & SessionStatus State Machine (Created, Active, Idle, Completed, Expired, Cancelled)
+SessionManager (Thread-safe concurrency, idle timeout detection)
+Interaction, InteractionId, InteractionStatus, InteractionOutcome
+RuntimeEngine (Orchestrating the 9-stage lifecycle)
 
-Pipeline ban đầu:
+Pipeline đã hoàn thiện:
 
 User Input
      ↓
-Runtime
+Session Touch / Resolution (SessionManager)
      ↓
-Load Character
+Memory Retrieval (Actor-Isolated MemoryQuery)
      ↓
-Read State
+Context Construction & Budget Governance (ContextBuilder)
      ↓
-Retrieve Memory
+Decision Evaluation (DecisionEngine)
      ↓
-Build Context
+LLM Generation (LlmProvider / Gemini / Mock)
      ↓
-Decision
+Emotion & State Feedback Update (apply_delta, decay, sync_behavior)
      ↓
-LLM
+Relationship Evolution (RelationshipTransition)
      ↓
-Response
-
-Sau này mới thêm:
-
-Outcome
- ↓
-State Update
- ↓
-Memory Update
+Memory Consolidation (Episodic Memory Formation)
+     ↓
+InteractionOutcome
 B3. LLM
 
 Phụ trách:

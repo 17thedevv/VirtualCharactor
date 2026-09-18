@@ -1368,6 +1368,7 @@ dependencies = [
 name = "vc-runtime"
 version = "0.1.0"
 dependencies = [
+ "serde",
  "uuid",
  "vc-core",
  "vc-llm",

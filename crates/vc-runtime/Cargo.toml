@@ -7,4 +7,5 @@ edition = "2021"
 vc-core = { path = "../vc-core" }
 vc-llm = { path = "../vc-llm" }
 vc-storage = { path = "../vc-storage" }
-uuid = { version = "1.8", features = ["v4"] }
+uuid = { version = "1.8", features = ["v4", "serde"] }
+serde = { version = "1.0", features = ["derive"] }

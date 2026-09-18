@@ -6,3 +6,4 @@ pub mod mock_decision;
 pub mod rule_decision_engine;
 pub mod rule_emotion_engine;
 pub mod runtime;
+pub mod session;

@@ -69,9 +69,13 @@ impl AppState {
                 })
             }
         };
-        let runtime = Arc::new(RuntimeEngine::new(llm));
         let emotion_engine = Arc::new(RuleBasedEmotionEngine::new());
         let decision_engine = Arc::new(RuleDecisionEngine::new());
+        let runtime = Arc::new(RuntimeEngine::with_engines(
+            llm,
+            decision_engine.clone(),
+            emotion_engine.clone(),
+        ));
 
         Self {
             character: Arc::new(RwLock::new(character)),

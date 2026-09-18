@@ -116,13 +116,22 @@ async fn process_user_interaction(
 ) {
     let interaction_id = Uuid::new_v4().to_string();
     let start_time = chrono_now_secs();
+    let char_id = state.character.read().await.id;
 
-    // 1. Interaction Started
+    // 1. Session Management & Interaction Started (B2 Runtime)
+    let session_id = {
+        let mut mgr = state.runtime.session_manager.write().expect("session lock poisoned");
+        let session = mgr.get_or_create(char_id, &actor_id, start_time);
+        session.touch(start_time);
+        session.id.0.to_string()
+    };
+
     let _ = sender
         .send(Message::Text(
             json!({
                 "event": "interaction_started",
                 "interaction_id": interaction_id,
+                "session_id": session_id,
                 "actor_id": actor_id,
                 "timestamp": start_time,
             })
@@ -164,6 +173,11 @@ async fn process_user_interaction(
                     "affection": rel.state.affection,
                     "tension": rel.state.tension,
                     "known_facts": rel.state.known_facts,
+                },
+                "session": {
+                    "session_id": session_id,
+                    "turn_count": char_state.session.turn_count + 1,
+                    "status": "Active"
                 }
             })
             .to_string().into(),
@@ -417,6 +431,11 @@ async fn process_user_interaction(
                     "affection": new_rel.state.affection,
                     "tension": new_rel.state.tension,
                     "known_facts": new_rel.state.known_facts,
+                },
+                "session": {
+                    "session_id": session_id,
+                    "turn_count": new_char_state.session.turn_count,
+                    "status": "Active"
                 }
             })
             .to_string().into(),
