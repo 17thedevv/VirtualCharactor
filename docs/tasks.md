@@ -123,11 +123,9 @@ Character A ↔ User Y
 
 một cách độc lập.
 
-A4. Memory
+A4. Memory [DONE]
 
-Đây sẽ là task lớn nhất của Dev A.
-
-Phase 1 chỉ làm foundation + deterministic lifecycle, chưa làm embedding/vector DB.
+(Đã hoàn tất toàn bộ Domain Memory Model, 4 Tầng Bộ Nhớ, Lifecycle Decay & Reinforcement, MemoryQuery & Actor Isolation, InMemoryMemoryStore và tích hợp Server/Web).
 
 Phụ trách:
 

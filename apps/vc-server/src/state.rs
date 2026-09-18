@@ -1,8 +1,7 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use uuid::Uuid;
 use vc_core::character::{Character, CharacterId};
-use vc_core::memory::{Memory, MemoryId, MemoryImportance, MemoryMetadata, MemoryType};
+use vc_core::memory::{Memory, MemoryImportance};
 use vc_core::personality::*;
 use vc_core::relationship::Relationship;
 use vc_core::state::CharacterState;
@@ -40,30 +39,19 @@ impl AppState {
 
 
         let memories = vec![
-            Memory {
-                id: MemoryId(Uuid::new_v4()),
-                content: "First awakened in the VirtualCharacter runtime environment.".into(),
-                metadata: MemoryMetadata {
-                    importance: MemoryImportance::High,
-                    memory_type: MemoryType::Episodic,
-                },
-            },
-            Memory {
-                id: MemoryId(Uuid::new_v4()),
-                content: "User appreciates thoughtful, self-aware responses.".into(),
-                metadata: MemoryMetadata {
-                    importance: MemoryImportance::Critical,
-                    memory_type: MemoryType::Semantic,
-                },
-            },
-            Memory {
-                id: MemoryId(Uuid::new_v4()),
-                content: "Discussed the beauty of pairing Rust performance with fluid web aesthetics.".into(),
-                metadata: MemoryMetadata {
-                    importance: MemoryImportance::Medium,
-                    memory_type: MemoryType::Episodic,
-                },
-            },
+            Memory::new_core("First awakened in the VirtualCharacter runtime environment.", 1000),
+            Memory::new_semantic(
+                "User appreciates thoughtful, self-aware responses.",
+                MemoryImportance::Critical,
+                Some("user-default".into()),
+                1001,
+            ),
+            Memory::new_episodic(
+                "Discussed the beauty of pairing Rust performance with fluid web aesthetics.",
+                MemoryImportance::Medium,
+                Some("user-default".into()),
+                1002,
+            ),
         ];
 
         let llm: Arc<dyn vc_llm::provider::LlmProvider> = match std::env::var("GEMINI_API_KEY") {

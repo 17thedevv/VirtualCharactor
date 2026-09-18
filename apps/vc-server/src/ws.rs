@@ -11,7 +11,7 @@ use serde_json::json;
 use std::time::Duration;
 use tokio::time::sleep;
 use uuid::Uuid;
-use vc_core::memory::{Memory, MemoryId, MemoryImportance, MemoryMetadata, MemoryType};
+use vc_core::memory::{Memory, MemoryImportance};
 use vc_core::personality::Personality;
 use vc_core::relationship::Relationship;
 use vc_core::state::{CharacterState, EmotionEngine};
@@ -167,12 +167,18 @@ async fn process_user_interaction(
 
     sleep(Duration::from_millis(100)).await;
 
-    // 3. Retrieve Memory
-    let memories = state.memories.read().await.clone();
-    let retrieved_memories: Vec<&Memory> = memories
-        .iter()
-        .take(3)
-        .collect();
+    // 3. Retrieve Memory using MemoryQuery with strict actor isolation
+    let retrieved_memories = {
+        let mut memories = state.memories.write().await;
+        let query = vc_core::memory::MemoryQuery::new(3)
+            .with_actor(&actor_id)
+            .with_text(&user_input);
+        vc_runtime::in_memory_store::InMemoryMemoryStore::retrieve_from_slice(
+            &mut memories,
+            &query,
+            start_time,
+        )
+    };
 
     let _ = sender
         .send(Message::Text(
@@ -363,16 +369,14 @@ async fn process_user_interaction(
         ))
         .await;
 
-    // 8. Memory Formation
+    // 8. Memory Formation (Episodic, scoped to interacting actor)
     let new_memory_content = format!("User discussed: \"{}\"", summarize_snippet(&user_input));
-    let new_mem = Memory {
-        id: MemoryId(Uuid::new_v4()),
-        content: new_memory_content.clone(),
-        metadata: MemoryMetadata {
-            importance: MemoryImportance::Medium,
-            memory_type: MemoryType::Episodic,
-        },
-    };
+    let new_mem = Memory::new_episodic(
+        new_memory_content,
+        MemoryImportance::Medium,
+        Some(actor_id),
+        start_time,
+    );
 
     {
         let mut memories_mut = state.memories.write().await;
@@ -525,7 +529,7 @@ fn build_companion_llm_request(
     personality: &Personality,
     char_state: &CharacterState,
     rel: &Relationship,
-    memories: &[&Memory],
+    memories: &[Memory],
     user_input: &str,
     chosen_action: &str,
     reasoning: &str,

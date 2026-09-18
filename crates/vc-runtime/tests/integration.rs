@@ -277,3 +277,46 @@ fn test_relationship_evolution_and_multi_actor_isolation() {
     assert!((rel_bob.state.trust - 0.15).abs() < f32::EPSILON);
 }
 
+#[test]
+fn test_memory_system_retrieval_and_actor_isolation() {
+    use vc_core::memory::{Memory, MemoryImportance, MemoryQuery};
+    use vc_runtime::in_memory_store::InMemoryMemoryStore;
+
+    let now = 200_000;
+    let mut memories = vec![
+        Memory::new_core("Awakened as Aria, empathetic virtual companion", now - 86400),
+        Memory::new_episodic("Alice shared that her favorite compiler is written in Rust", MemoryImportance::High, Some("alice".into()), now - 3600),
+        Memory::new_semantic("Alice prefers strict type safety", MemoryImportance::Critical, Some("alice".into()), now - 7200),
+        Memory::new_episodic("Bob mentioned he is learning Python for data science", MemoryImportance::Medium, Some("bob".into()), now - 1800),
+        Memory::new_episodic("Bob shared his secret password with Aria", MemoryImportance::High, Some("bob".into()), now - 900),
+    ];
+
+    // 1. Alice queries memories about 'Rust' or 'compiler'
+    let query_alice = MemoryQuery::new(3)
+        .with_actor("alice")
+        .with_text("Rust compiler");
+
+    let results_alice = InMemoryMemoryStore::retrieve_from_slice(&mut memories, &query_alice, now);
+    assert!(results_alice.len() <= 3);
+    assert!(results_alice.iter().any(|m| m.content.contains("Alice")));
+    // Skill 12 Rule: NEVER retrieve Bob's memories for Alice!
+    assert!(!results_alice.iter().any(|m| m.content.contains("Bob")));
+    assert!(!results_alice.iter().any(|m| m.content.contains("password")));
+
+    // 2. Bob queries memories about 'Python'
+    let query_bob = MemoryQuery::new(2)
+        .with_actor("bob")
+        .with_text("Python");
+
+    let results_bob = InMemoryMemoryStore::retrieve_from_slice(&mut memories, &query_bob, now);
+    assert!(!results_bob.is_empty());
+    assert!(results_bob.iter().any(|m| m.content.contains("Python")));
+    // Skill 12 Rule: NEVER retrieve Alice's memories for Bob!
+    assert!(!results_bob.iter().any(|m| m.content.contains("Alice")));
+
+    // 3. Access reinforcement check: Retrieved memories have incremented access_count
+    let alice_accessed = memories.iter().find(|m| m.content.contains("Alice shared")).unwrap();
+    assert!(alice_accessed.lifecycle.access_count >= 1);
+}
+
+
