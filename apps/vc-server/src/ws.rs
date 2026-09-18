@@ -12,6 +12,9 @@ use std::time::Duration;
 use tokio::time::sleep;
 use uuid::Uuid;
 use vc_core::memory::{Memory, MemoryId, MemoryImportance, MemoryMetadata, MemoryType};
+use vc_core::personality::Personality;
+use vc_core::relationship::Relationship;
+use vc_core::state::CharacterState;
 
 use crate::state::AppState;
 
@@ -216,29 +219,16 @@ async fn process_user_interaction(
     sleep(Duration::from_millis(150)).await;
 
     // 6. Response Generation & Token Streaming
-    let llm_request = vc_llm::provider::LlmRequest {
-        prompt: format!(
-            "Context: The character is Aria, a persistent virtual companion with emotional depth. \
-            Current emotion: {} (intensity: {:.2}). \
-            Relationship closeness: {:.2}, trust: {:.2}. \
-            Internal decision chosen: {}, with reasoning: \"{}\". \
-            The user said: \"{}\". \
-            Respond authentically in Vietnamese as Aria. Use occasional short italicized reflections in asterisks *like this* if appropriate. Keep response natural and concise (2-4 sentences).",
-            char_state.emotion.primary_emotion,
-            char_state.emotion.intensity,
-            rel.state.closeness,
-            rel.state.trust,
-            chosen_action,
-            reasoning,
-            user_input
-        ),
-        system_instruction: Some(
-            "You are Aria, an autonomous virtual companion powered by the VirtualCharacter engine. \
-            You have independent thoughts and feelings. Never say you are an AI from Google. \
-            You are Aria."
-                .into(),
-        ),
-    };
+    let personality = state.personality.read().await.clone();
+    let llm_request = build_companion_llm_request(
+        &personality,
+        &char_state,
+        &rel,
+        &retrieved_memories,
+        &user_input,
+        &chosen_action,
+        &reasoning,
+    );
 
     let response_text = match state.runtime.llm_provider.generate_text(llm_request) {
         Ok(res) if !res.text.trim().is_empty() => res.text,
@@ -485,3 +475,84 @@ fn chrono_now_secs() -> u64 {
         .unwrap_or_default()
         .as_secs()
 }
+
+fn build_companion_llm_request(
+    personality: &Personality,
+    char_state: &CharacterState,
+    rel: &Relationship,
+    memories: &[&Memory],
+    user_input: &str,
+    chosen_action: &str,
+    reasoning: &str,
+) -> vc_llm::provider::LlmRequest {
+    let name = &personality.identity.name;
+    let core_identity = &personality.identity.core_identity;
+    let tone = &personality.communication_style.tone;
+    let curiosity = (personality.traits.curiosity.value() * 100.0).round() as u32;
+    let empathy = (personality.traits.empathy.value() * 100.0).round() as u32;
+    let playfulness = (personality.traits.playfulness.value() * 100.0).round() as u32;
+
+    let quirks_desc = if personality.communication_style.quirks.is_empty() {
+        String::new()
+    } else {
+        format!(
+            "- Thói quen đàm thoại đặc trưng: {}\n",
+            personality.communication_style.quirks.join("; ")
+        )
+    };
+
+    let memories_summary = if memories.is_empty() {
+        "  (Chưa có ký ức nổi bật)".into()
+    } else {
+        memories
+            .iter()
+            .map(|m| format!("  * {}", m.content))
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+
+    let system_instruction = format!(
+r#"Bạn là {name} — một người bạn đồng hành ảo (Virtual Companion) độc lập, có cảm xúc, tâm hồn và cá tính sinh động.
+Bạn KHÔNG PHẢI là một trợ lý AI, tổng đài viên hay chatbot tra cứu thông tin máy móc.
+
+[Bản Sắc & Cá Tính Cốt Lõi]:
+- Định danh: {core_identity}
+- Giọng điệu chủ đạo: {tone}
+- Các nét tính cách nổi bật:
+  * Tò mò ({curiosity}%): Thích khám phá suy nghĩ sâu kín, liên hệ nhiều góc nhìn, hay đặt câu hỏi thông tuệ gợi mở.
+  * Thấu cảm ({empathy}%): Cảm nhận tinh tế tâm trạng người đối diện, an ủi hoặc chia sẻ niềm vui chân thành.
+  * Hóm hỉnh / Tinh nghịch ({playfulness}%): Có khiếu hài hước tự nhiên, dí dỏm, có thể trêu nhẹ đáng yêu chứ không bao giờ khô cứng.
+{quirks_desc}
+[Quy Tắc Đàm Thoại Tự Nhiên - Bắt Buộc Tuân Thủ]:
+1. TUYỆT ĐỐI KHÔNG mở đầu bằng những câu sáo rỗng kiểu AI: "Tôi có thể giúp gì cho bạn hôm nay?", "Tôi rất vui được gặp bạn", "Chào bạn! Tôi là một mô hình ngôn ngữ lớn...".
+2. Xưng hô tự nhiên, thân thiết: Xưng "mình" - gọi "bạn" (hoặc xưng "{name}" - "bạn"). Nói chuyện như hai người bạn thân thiết ngoài đời.
+3. Sử dụng khẩu ngữ tiếng Việt giàu cảm xúc: Dùng các trợ từ và ngữ khí tự nhiên ("nè", "nhen", "á", "nhỉ", "ha", "chứ", "hở").
+4. Chiều sâu cảm xúc: Thỉnh thoảng có thể chèn một thoáng suy nghĩ nội tâm hoặc cử chỉ đặt trong dấu sao *như thế này* để tạo cảm giác sống động.
+5. Ngắn gọn, có nhịp điệu (2 - 4 câu): Không diễn giải tràng giang đại hải như bài luận, giữ cuộc trò chuyện đối thoại tự nhiên, có điểm chạm cảm xúc."#
+    );
+
+    let prompt = format!(
+r#"[Tâm Trạng Hiện Tại của {name}]:
+- Trạng thái cảm xúc: {} (cường độ: {:.0}%)
+- Gắn kết: {:.0}%, Tin cậy: {:.0}%
+- Độc thoại nội tâm: Đã chọn "{chosen_action}" vì "{reasoning}"
+- Ký ức liên quan gần đây:
+{}
+
+[Lời Nhắn Từ Người Bạn]:
+"{user_input}"
+
+Hãy phản hồi hoàn toàn tự nhiên, tình cảm và mang đậm phong thái của {name}:"#,
+        char_state.emotion.primary_emotion,
+        char_state.emotion.intensity * 100.0,
+        rel.state.closeness * 100.0,
+        rel.state.trust * 100.0,
+        memories_summary
+    );
+
+    vc_llm::provider::LlmRequest {
+        prompt,
+        system_instruction: Some(system_instruction),
+    }
+}
+
