@@ -93,7 +93,9 @@ Hybrid
 
 Nhưng Phase 1 chưa cần ML.
 
-A3. Relationship
+A3. Relationship [DONE]
+
+(Đã hoàn tất toàn bộ Bipartite Relationship, Multi-Actor Isolation, 5 Metrics [closeness, trust, familiarity, affection, tension], Stage Progression, Relationship Transition & Damping, và đồng bộ Web HUD).
 
 Phụ trách:
 

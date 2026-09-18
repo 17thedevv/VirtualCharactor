@@ -4,7 +4,7 @@ use uuid::Uuid;
 use vc_core::character::{Character, CharacterId};
 use vc_core::memory::{Memory, MemoryId, MemoryImportance, MemoryMetadata, MemoryType};
 use vc_core::personality::*;
-use vc_core::relationship::{Relationship, RelationshipId, RelationshipState};
+use vc_core::relationship::Relationship;
 use vc_core::state::CharacterState;
 use vc_llm::mock::MockLlmProvider;
 use vc_runtime::rule_emotion_engine::RuleBasedEmotionEngine;
@@ -34,20 +34,10 @@ impl AppState {
 
         let character_state = CharacterState::default_aria();
 
-        let relationship = Relationship {
-            id: RelationshipId(Uuid::new_v4()),
-            character_id: char_id,
-            target_id: "user-default".into(),
-            relationship_type: "Companion".into(),
-            state: RelationshipState {
-                closeness: 0.55,
-                trust: 0.65,
-                known_facts: vec![
-                    "Interested in building intelligent autonomous agents".into(),
-                    "Prefers clean architecture and thoughtful interfaces".into(),
-                ],
-            },
-        };
+        let mut relationship = Relationship::new_companion(char_id, "user-default");
+        relationship.add_known_fact("Interested in building intelligent autonomous agents");
+        relationship.add_known_fact("Prefers clean architecture and thoughtful interfaces");
+
 
         let memories = vec![
             Memory {

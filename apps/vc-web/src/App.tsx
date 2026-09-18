@@ -122,9 +122,12 @@ export const App: React.FC = () => {
   });
 
   const [relationship, setRelationship] = useState<RelationshipData>({
+    stage: 'Casual Companion',
     closeness: 0.55,
     trust: 0.65,
-    stage: 'Familiar Companion',
+    familiarity: 0.60,
+    affection: 0.62,
+    tension: 0.02,
     known_facts: ['Đam mê xây dựng hệ thống tác tử AI thông minh'],
   });
 
@@ -242,8 +245,7 @@ export const App: React.FC = () => {
           if (data.relationship) {
             setRelationship((prev) => ({
               ...prev,
-              closeness: data.relationship.closeness ?? prev.closeness,
-              trust: data.relationship.trust ?? prev.trust,
+              ...data.relationship,
             }));
           }
           break;
@@ -272,6 +274,15 @@ export const App: React.FC = () => {
             dominant_intensity: 0.65,
             valence: 0.45,
             arousal: 0.35,
+          });
+          setRelationship({
+            stage: 'Casual Companion',
+            closeness: 0.55,
+            trust: 0.65,
+            familiarity: 0.60,
+            affection: 0.62,
+            tension: 0.02,
+            known_facts: ['Đam mê xây dựng hệ thống tác tử AI thông minh'],
           });
           break;
       }

@@ -16,9 +16,12 @@ export interface EmotionData {
 }
 
 export interface RelationshipData {
+  stage: string;
   closeness: number;
   trust: number;
-  stage: string;
+  familiarity?: number;
+  affection?: number;
+  tension?: number;
   known_facts: string[];
 }
 

@@ -138,9 +138,13 @@ export class VirtualCharacterClient {
         cognitive_load: 0.25,
       },
       relationship: {
+        stage: 'Casual Companion',
         closeness: 0.6,
         trust: 0.7,
-        stage: 'Familiar Companion',
+        familiarity: 0.65,
+        affection: 0.68,
+        tension: 0.02,
+        known_facts: ['Đam mê xây dựng hệ thống tác tử AI thông minh'],
       },
     });
 
@@ -240,8 +244,12 @@ export class VirtualCharacterClient {
         arousal: 0.8,
       },
       relationship: {
+        stage: 'Casual Companion',
         closeness: 0.62,
         trust: 0.71,
+        familiarity: 0.68,
+        affection: 0.70,
+        tension: 0.02,
       },
     });
 

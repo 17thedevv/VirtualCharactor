@@ -10,3 +10,9 @@ pub trait MemoryRepository {
     fn get_memory(&self, id: MemoryId) -> vc_core::Result<Memory>;
     fn save_memory(&self, memory: Memory) -> vc_core::Result<()>;
 }
+
+pub trait RelationshipRepository {
+    fn get_relationship(&self, character_id: CharacterId, actor_id: &str) -> vc_core::Result<Option<vc_core::relationship::Relationship>>;
+    fn save_relationship(&self, relationship: vc_core::relationship::Relationship) -> vc_core::Result<()>;
+}
+

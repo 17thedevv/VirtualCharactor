@@ -152,9 +152,13 @@ async fn process_user_interaction(
                     "current_activity": char_state.behavior.current_activity,
                 },
                 "relationship": {
+                    "stage": rel.state.stage.as_str(),
                     "closeness": rel.state.closeness,
                     "trust": rel.state.trust,
-                    "stage": relationship_stage(rel.state.closeness)
+                    "familiarity": rel.state.familiarity,
+                    "affection": rel.state.affection,
+                    "tension": rel.state.tension,
+                    "known_facts": rel.state.known_facts,
                 }
             })
             .to_string().into(),
@@ -303,10 +307,16 @@ async fn process_user_interaction(
         // Update session
         char_state_mut.session.increment_turn();
 
-        // Update relationship
+        // Update relationship via RelationshipTransition
         let mut rel_mut = state.relationship.write().await;
-        rel_mut.state.closeness = (rel_mut.state.closeness + 0.02).min(1.0);
-        rel_mut.state.trust = (rel_mut.state.trust + 0.01).min(1.0);
+        let rel_transition = vc_core::relationship::RelationshipTransition {
+            familiarity_delta: 0.03,
+            closeness_delta: 0.02,
+            trust_delta: 0.015,
+            affection_delta: 0.02,
+            tension_delta: -0.01,
+        };
+        rel_mut.record_interaction(&rel_transition, start_time);
     }
 
     let new_char_state = state.character_state.read().await.clone();
@@ -340,8 +350,13 @@ async fn process_user_interaction(
                     "initiative": new_char_state.behavior.initiative.value(),
                 },
                 "relationship": {
+                    "stage": new_rel.state.stage.as_str(),
                     "closeness": new_rel.state.closeness,
-                    "trust": new_rel.state.trust
+                    "trust": new_rel.state.trust,
+                    "familiarity": new_rel.state.familiarity,
+                    "affection": new_rel.state.affection,
+                    "tension": new_rel.state.tension,
+                    "known_facts": new_rel.state.known_facts,
                 }
             })
             .to_string().into(),
@@ -400,17 +415,7 @@ fn build_emotion_json(emotion: &vc_core::state::EmotionState) -> serde_json::Val
     })
 }
 
-fn relationship_stage(closeness: f32) -> &'static str {
-    if closeness < 0.3 {
-        "Acquaintance"
-    } else if closeness < 0.6 {
-        "Familiar Companion"
-    } else if closeness < 0.85 {
-        "Trusted Confidant"
-    } else {
-        "Deep Soulmate"
-    }
-}
+
 
 fn evaluate_decision(
     input: &str,

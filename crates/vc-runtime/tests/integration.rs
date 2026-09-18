@@ -236,3 +236,44 @@ fn test_effective_behavior_personality_emotion_interaction() {
         "Seriousness should increase when sad"
     );
 }
+
+#[test]
+fn test_relationship_evolution_and_multi_actor_isolation() {
+    use vc_core::relationship::{Relationship, RelationshipStage, RelationshipTransition};
+
+    let char_id = CharacterId::new();
+
+    // Two independent actors
+    let mut rel_alice = Relationship::new_stranger(char_id, "user-alice");
+    let rel_bob = Relationship::new_stranger(char_id, "user-bob");
+
+    assert_eq!(rel_alice.state.stage, RelationshipStage::Stranger);
+    assert_eq!(rel_bob.state.stage, RelationshipStage::Stranger);
+
+    // Alice has multiple positive interactions
+    let positive = RelationshipTransition::positive_interaction();
+    for i in 0..5 {
+        rel_alice.record_interaction(&positive, 1000 + i);
+    }
+    assert_eq!(rel_alice.state.stage, RelationshipStage::Acquaintance);
+
+    // Alice shares vulnerable conversations
+    let vuln = RelationshipTransition::vulnerable_interaction();
+    for i in 5..12 {
+        rel_alice.record_interaction(&vuln, 1000 + i);
+    }
+    rel_alice.add_known_fact("Loves exploring Rust and AI systems");
+
+    // Alice is now CloseFriend
+    assert_eq!(rel_alice.state.stage, RelationshipStage::CloseFriend);
+    assert!(rel_alice.state.trust > 0.60);
+    assert!(rel_alice.state.closeness > 0.50);
+    assert_eq!(rel_alice.state.known_facts.len(), 1);
+
+    // Skill 14 Rule: Bob's relationship must remain pure stranger
+    assert_eq!(rel_bob.state.stage, RelationshipStage::Stranger);
+    assert_eq!(rel_bob.interaction_count, 0);
+    assert_eq!(rel_bob.knowledge.facts().len(), 0);
+    assert!((rel_bob.state.trust - 0.15).abs() < f32::EPSILON);
+}
+
