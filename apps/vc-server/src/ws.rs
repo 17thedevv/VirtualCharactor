@@ -685,8 +685,6 @@ Hãy phản hồi hoàn toàn tự nhiên, tình cảm và mang đậm phong th�
         memories = memories_summary
     );
 
-    vc_llm::provider::LlmRequest {
-        prompt,
-        system_instruction: Some(system_instruction),
-    }
+    vc_llm::provider::LlmRequest::new(prompt)
+        .with_system_instruction(system_instruction)
 }

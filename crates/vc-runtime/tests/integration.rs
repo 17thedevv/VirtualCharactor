@@ -43,9 +43,9 @@ fn build_test_context() -> Context {
 #[test]
 fn test_end_to_end_mock_flow() {
     // 1. Setup infrastructure
-    let llm = Arc::new(MockLlmProvider {
-        default_response: "I am a test character. Nice to meet you!".into(),
-    });
+    let llm = Arc::new(MockLlmProvider::new(
+        "I am a test character. Nice to meet you!",
+    ));
     let runtime = RuntimeEngine::new(llm.clone());
     let decision_engine = MockDecisionEngine;
 
@@ -74,14 +74,12 @@ fn test_end_to_end_mock_flow() {
     );
 
     // 4. LLM phase: decision → LLM request → LLM response
-    let request = LlmRequest {
-        prompt: format!(
-            "Action: {}\nPayload: {}",
-            decision.result.selected_action.action_type,
-            decision.result.selected_action.payload
-        ),
-        system_instruction: Some("You are a persistent AI character.".into()),
-    };
+    let request = LlmRequest::new(format!(
+        "Action: {}\nPayload: {}",
+        decision.result.selected_action.action_type,
+        decision.result.selected_action.payload
+    ))
+    .with_system_instruction("You are a persistent AI character.");
 
     let response = llm
         .generate_text(request)
@@ -150,14 +148,9 @@ fn test_decision_is_not_generation() {
     );
 
     // LLM generation answers "how should it be expressed?"
-    let llm = MockLlmProvider {
-        default_response: "expressed output".into(),
-    };
+    let llm = MockLlmProvider::new("expressed output");
     let response = llm
-        .generate_text(LlmRequest {
-            prompt: decision.result.selected_action.description.clone(),
-            system_instruction: None,
-        })
+        .generate_text(LlmRequest::new(decision.result.selected_action.description.clone()))
         .unwrap();
 
     // These are separate concerns
@@ -461,9 +454,9 @@ fn test_runtime_orchestrator_complete_lifecycle() {
     use vc_runtime::runtime::RuntimeEngine;
 
     // 1. Setup RuntimeEngine with MockLlmProvider
-    let llm = Arc::new(MockLlmProvider {
-        default_response: "Aria responds with warmth and joy.".into(),
-    });
+    let llm = Arc::new(MockLlmProvider::new(
+        "Aria responds with warmth and joy.",
+    ));
     let runtime = RuntimeEngine::new(llm);
 
     // 2. Setup domain entities
@@ -539,6 +532,148 @@ fn test_session_lifecycle_and_timeout() {
     let session = manager.get_session(char_id, "user-timeout").unwrap();
     assert_eq!(session.status, vc_runtime::session::SessionStatus::Completed);
     assert!(!session.is_active());
+}
+
+#[test]
+fn test_mock_llm_sequence_and_recording() {
+    use std::sync::Arc;
+    use vc_core::character::CharacterId;
+    use vc_llm::mock::MockLlmProvider;
+    use vc_runtime::runtime::RuntimeEngine;
+
+    // 1. Setup MockLlmProvider with a sequence of canned responses
+    let mock = Arc::new(MockLlmProvider::with_responses(vec![
+        "First turn: Glad to meet you!".into(),
+        "Second turn: I remember our chat!".into(),
+    ]));
+    let runtime = RuntimeEngine::new(mock.clone());
+
+    let char_id = CharacterId::new();
+    let personality = build_test_personality();
+    let mut state = build_test_state();
+    let mut rel = vc_core::relationship::Relationship::new_companion(char_id, "user-b3");
+    let mut memories = vec![];
+
+    // 2. Turn 1
+    let outcome1 = runtime
+        .process_interaction(
+            char_id,
+            "user-b3",
+            "Hello turn 1",
+            &personality,
+            &mut state,
+            &mut rel,
+            &mut memories,
+            1000,
+        )
+        .expect("Turn 1 should succeed");
+    assert_eq!(outcome1.response_text, "First turn: Glad to meet you!");
+
+    // 3. Turn 2
+    let outcome2 = runtime
+        .process_interaction(
+            char_id,
+            "user-b3",
+            "Hello turn 2",
+            &personality,
+            &mut state,
+            &mut rel,
+            &mut memories,
+            1010,
+        )
+        .expect("Turn 2 should succeed");
+    assert_eq!(outcome2.response_text, "Second turn: I remember our chat!");
+
+    // 4. Verify request recording
+    assert_eq!(mock.request_count(), 2);
+    let recorded = mock.recorded_requests();
+    assert!(recorded[0].prompt.contains("Hello turn 1"));
+    assert!(recorded[1].prompt.contains("Hello turn 2"));
+    assert_eq!(
+        mock.last_request().unwrap().system_instruction,
+        Some("You are a persistent, warm, and authentic AI character.".into())
+    );
+}
+
+#[test]
+fn test_mock_llm_error_simulation_and_runtime_resilience() {
+    use std::sync::Arc;
+    use vc_core::character::CharacterId;
+    use vc_llm::mock::MockLlmProvider;
+    use vc_llm::provider::LlmError;
+    use vc_runtime::runtime::RuntimeEngine;
+
+    // 1. Setup MockLlmProvider that simulates a rate limit error
+    let mock = Arc::new(MockLlmProvider::failing(LlmError::RateLimited {
+        message: "API quota exceeded".into(),
+        retry_after_secs: Some(30),
+    }));
+    let runtime = RuntimeEngine::new(mock.clone());
+
+    let char_id = CharacterId::new();
+    let personality = build_test_personality();
+    let mut state = build_test_state();
+    let mut rel = vc_core::relationship::Relationship::new_companion(char_id, "user-resilience");
+    let mut memories = vec![];
+
+    // 2. Interaction should fail gracefully with provider error
+    let result = runtime.process_interaction(
+        char_id,
+        "user-resilience",
+        "Hi, are you there?",
+        &personality,
+        &mut state,
+        &mut rel,
+        &mut memories,
+        2000,
+    );
+    assert!(result.is_err());
+    let err_str = result.unwrap_err().to_string();
+    assert!(err_str.contains("Rate limited") || err_str.contains("quota"));
+
+    // 3. Clear simulated error and verify recovery
+    mock.set_simulated_error(None);
+    mock.push_canned_response("I have recovered and am back online!");
+
+    let outcome = runtime
+        .process_interaction(
+            char_id,
+            "user-resilience",
+            "Are you back now?",
+            &personality,
+            &mut state,
+            &mut rel,
+            &mut memories,
+            2010,
+        )
+        .expect("Should succeed after recovery");
+
+    assert_eq!(outcome.response_text, "I have recovered and am back online!");
+}
+
+#[test]
+fn test_gemini_config_and_secrets_redaction() {
+    use std::time::Duration;
+    use vc_llm::gemini::{GeminiConfig, GeminiProvider};
+    use vc_llm::provider::LlmProvider;
+
+    let secret_key = "AIzaSySecretApiKey1234567890";
+    let config = GeminiConfig::new(secret_key)
+        .with_model("gemini-1.5-flash")
+        .with_temperature(0.4)
+        .with_max_output_tokens(1024)
+        .with_timeout(Duration::from_secs(45))
+        .with_max_retries(3);
+
+    let provider = GeminiProvider::from_config(config);
+
+    assert_eq!(provider.name(), "GoogleGeminiProvider");
+    assert_eq!(provider.model(), "gemini-1.5-flash");
+
+    // Verify Secrets Redaction under Skill 20
+    let debug_output = format!("{:?}", provider);
+    assert!(!debug_output.contains(secret_key), "Secret key must NOT leak into debug output!");
+    assert!(debug_output.contains("[REDACTED]"), "Debug output must show [REDACTED]");
 }
 
 

@@ -18,9 +18,9 @@ fn main() {
         }
         _ => {
             println!("ℹ️ No GEMINI_API_KEY found, using local MockLlmProvider");
-            Arc::new(MockLlmProvider {
-                default_response: "Hello from Mock LLM! I am running entirely locally.".into(),
-            })
+            Arc::new(MockLlmProvider::new(
+                "Hello from Mock LLM! I am running entirely locally.",
+            ))
         }
     };
 

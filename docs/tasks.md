@@ -288,45 +288,33 @@ Relationship Evolution (RelationshipTransition)
 Memory Consolidation (Episodic Memory Formation)
      ↓
 InteractionOutcome
-B3. LLM
+B3. LLM [DONE]
+
+(Đã hoàn tất toàn bộ Provider Abstraction, Provider-Neutral Types, MockLlmProvider hoàn chỉnh, và GeminiProvider với Redacted Secrets, GenerationConfig, Usage Metadata & Error Mapping).
 
 Phụ trách:
 
-LlmProvider
-LlmRequest
-LlmResponse
+LlmProvider (Trait trừu tượng thuần túy)
+LlmRequest (Builder: prompt, system_instruction, temperature, max_tokens)
+LlmResponse (text, LlmUsage, finish_reason)
+LlmUsage (prompt_tokens, completion_tokens, total_tokens)
+LlmError (RateLimited, AuthenticationFailed, InvalidRequest, NetworkError, Timeout, ModelUnavailable, Other)
 
 Implementation:
 
-MockLlmProvider
-GeminiProvider
+MockLlmProvider:
+- Hoàn chỉnh cho unit & integration tests mà không phụ thuộc network hay API keys.
+- Hỗ trợ hàng đợi câu trả lời kịch bản sẵn (`with_responses`, `push_canned_response`).
+- Hỗ trợ mô phỏng lỗi provider (`failing`, `set_simulated_error`) để kiểm thử runtime resilience.
+- Ghi nhận lịch sử requests (`recorded_requests`, `last_request`, `request_count`) cho test assertions.
 
-Phase 1:
-
-Mock
-
-Phải hoàn chỉnh để integration test không phụ thuộc network.
-
-Gemini
-
-Có thể implement basic generation:
-
-Context
- ↓
-LlmRequest
- ↓
-Gemini
- ↓
-LlmResponse
-
-Nhưng Gemini-specific types chỉ được nằm:
-
-vc-llm::gemini
-
-Không được leak vào:
-
-vc-core
-vc-runtime domain types
+GeminiProvider:
+- GeminiConfig cấu hình linh hoạt (model, temperature, max_output_tokens, timeout, max_retries).
+- Secrets Management: Masking API key trong format `Debug` (`AIza...[REDACTED]`).
+- Hỗ trợ `generationConfig` (temperature, maxOutputTokens) gửi tới Gemini API.
+- Trích xuất `usageMetadata` (`promptTokenCount`, `candidatesTokenCount`, `totalTokenCount`) vào `LlmUsage`.
+- Cơ chế retry tự động cho lỗi tạm thời (429 RateLimit, 503 Service Unavailable) với exponential backoff.
+- Toàn bộ kiểu dữ liệu nội bộ của Gemini được cô lập 100% bên trong `vc-llm::gemini`, tuyệt đối không rò rỉ ra `vc-core` hay `vc-runtime`.
 B4. Storage
 
 Phụ trách:

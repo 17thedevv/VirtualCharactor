@@ -64,9 +64,9 @@ impl AppState {
             }
             _ => {
                 println!("ℹ️ No GEMINI_API_KEY found, using local MockLlmProvider");
-                Arc::new(MockLlmProvider {
-                    default_response: "Hello! I am Aria. I sense a warm curiosity in our space today. What are we exploring together?".into(),
-                })
+                Arc::new(MockLlmProvider::new(
+                    "Hello! I am Aria. I sense a warm curiosity in our space today. What are we exploring together?",
+                ))
             }
         };
         let emotion_engine = Arc::new(RuleBasedEmotionEngine::new());

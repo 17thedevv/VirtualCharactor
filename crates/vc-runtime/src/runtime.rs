@@ -123,10 +123,8 @@ impl RuntimeEngine {
             user_input
         );
 
-        let llm_request = vc_llm::provider::LlmRequest {
-            prompt,
-            system_instruction: Some("You are a persistent, warm, and authentic AI character.".into()),
-        };
+        let llm_request = vc_llm::provider::LlmRequest::new(prompt)
+            .with_system_instruction("You are a persistent, warm, and authentic AI character.");
 
         let response = self.llm_provider.generate_text(llm_request)?;
         let response_text = response.text;
@@ -190,9 +188,7 @@ mod tests {
 
     #[test]
     fn test_runtime_engine_creation_and_tick() {
-        let mock_llm = Arc::new(MockLlmProvider {
-            default_response: "Hello test".into(),
-        });
+        let mock_llm = Arc::new(MockLlmProvider::new("Hello test"));
         let runtime = RuntimeEngine::new(mock_llm);
         assert!(runtime.tick(CharacterId::new()).is_ok());
     }
