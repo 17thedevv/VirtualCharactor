@@ -15,6 +15,7 @@ use state::AppState;
 
 #[tokio::main]
 async fn main() {
+    dotenvy::dotenv().ok();
     // Initialize tracing
     tracing_subscriber::registry()
         .with(

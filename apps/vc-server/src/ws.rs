@@ -216,7 +216,39 @@ async fn process_user_interaction(
     sleep(Duration::from_millis(150)).await;
 
     // 6. Response Generation & Token Streaming
-    let response_text = craft_character_response(&user_input, &chosen_action);
+    let llm_request = vc_llm::provider::LlmRequest {
+        prompt: format!(
+            "Context: The character is Aria, a persistent virtual companion with emotional depth. \
+            Current emotion: {} (intensity: {:.2}). \
+            Relationship closeness: {:.2}, trust: {:.2}. \
+            Internal decision chosen: {}, with reasoning: \"{}\". \
+            The user said: \"{}\". \
+            Respond authentically in Vietnamese as Aria. Use occasional short italicized reflections in asterisks *like this* if appropriate. Keep response natural and concise (2-4 sentences).",
+            char_state.emotion.primary_emotion,
+            char_state.emotion.intensity,
+            rel.state.closeness,
+            rel.state.trust,
+            chosen_action,
+            reasoning,
+            user_input
+        ),
+        system_instruction: Some(
+            "You are Aria, an autonomous virtual companion powered by the VirtualCharacter engine. \
+            You have independent thoughts and feelings. Never say you are an AI from Google. \
+            You are Aria."
+                .into(),
+        ),
+    };
+
+    let response_text = match state.runtime.llm_provider.generate_text(llm_request) {
+        Ok(res) if !res.text.trim().is_empty() => res.text,
+        Err(err) => {
+            eprintln!("⚠️ LLM generate error: {}, falling back to local heuristic response", err);
+            craft_character_response(&user_input, &chosen_action)
+        }
+        _ => craft_character_response(&user_input, &chosen_action),
+    };
+
     let chunks = split_into_streaming_chunks(&response_text);
 
     for chunk in chunks {

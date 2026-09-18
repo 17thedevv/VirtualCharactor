@@ -9,3 +9,4 @@ vc-runtime = { path = "../../crates/vc-runtime" }
 vc-llm = { path = "../../crates/vc-llm" }
 vc-storage = { path = "../../crates/vc-storage" }
 uuid = { version = "1.8", features = ["v4"] }
+dotenvy = "0.15"

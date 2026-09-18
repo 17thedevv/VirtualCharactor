@@ -146,9 +146,19 @@ impl AppState {
             },
         ];
 
-        let llm = Arc::new(MockLlmProvider {
-            default_response: "Hello! I am Aria. I sense a warm curiosity in our space today. What are we exploring together?".into(),
-        });
+        let llm: Arc<dyn vc_llm::provider::LlmProvider> = match std::env::var("GEMINI_API_KEY") {
+            Ok(key) if !key.is_empty() => {
+                let model = std::env::var("GEMINI_MODEL").unwrap_or_else(|_| "gemini-3.5-flash-lite".into());
+                println!("⚡ vc-server configured with Google Gemini API (model: {})", model);
+                Arc::new(vc_llm::gemini::GeminiProvider::with_model(key, model))
+            }
+            _ => {
+                println!("ℹ️ No GEMINI_API_KEY found, using local MockLlmProvider");
+                Arc::new(MockLlmProvider {
+                    default_response: "Hello! I am Aria. I sense a warm curiosity in our space today. What are we exploring together?".into(),
+                })
+            }
+        };
         let runtime = Arc::new(RuntimeEngine::new(llm));
 
         Self {
