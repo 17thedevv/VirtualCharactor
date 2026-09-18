@@ -36,7 +36,7 @@ fn main() {
 
     // 4. Create dummy entities for demonstration
     let char_id = CharacterId::new();
-    let _context = Context { items: vec![] };
+    let _context = Context::default();
     let personality = vc_core::personality::Personality::baseline_aria();
     let state = vc_core::state::CharacterState::default_aria();
 

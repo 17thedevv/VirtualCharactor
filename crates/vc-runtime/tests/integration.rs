@@ -26,20 +26,18 @@ fn build_test_state() -> CharacterState {
 }
 
 fn build_test_context() -> Context {
-    Context {
-        items: vec![
-            ContextItem {
-                source: ContextSource::User,
-                content: "Hello, who are you?".into(),
-                priority: ContextPriority::High,
-            },
-            ContextItem {
-                source: ContextSource::System,
-                content: "Character is in greeting mode.".into(),
-                priority: ContextPriority::Medium,
-            },
-        ],
-    }
+    Context::new(vec![
+        ContextItem::new(
+            ContextSource::User,
+            "Hello, who are you?",
+            ContextPriority::High,
+        ),
+        ContextItem::new(
+            ContextSource::System,
+            "Character is in greeting mode.",
+            ContextPriority::Medium,
+        ),
+    ])
 }
 
 #[test]
@@ -398,6 +396,60 @@ fn test_memory_system_retrieval_and_actor_isolation() {
     // 3. Access reinforcement check: Retrieved memories have incremented access_count
     let alice_accessed = memories.iter().find(|m| m.content.contains("Alice shared")).unwrap();
     assert!(alice_accessed.lifecycle.access_count >= 1);
+}
+
+#[test]
+fn test_context_builder_and_budget_governance() {
+    use vc_core::context::{ContextBudget, ContextBuilder, ContextSource};
+    use vc_core::memory::{Memory, MemoryImportance};
+    use vc_core::relationship::Relationship;
+
+    let personality = build_test_personality();
+    let state = build_test_state();
+    let rel = Relationship::new_companion(vc_core::character::CharacterId(personality.id.0), "user-devb");
+    let memories = vec![
+        Memory::new_core("Core awakened memory", 1000),
+        Memory::new_semantic(
+            "User likes concise explanations and clean code",
+            MemoryImportance::High,
+            Some("user-devb".into()),
+            1001,
+        ),
+        Memory::new_episodic(
+            "Talked about weather 3 weeks ago",
+            MemoryImportance::Low,
+            Some("user-devb".into()),
+            900,
+        ),
+    ];
+
+    // Build context with tight budget (e.g. 150 tokens)
+    let tight_budget = ContextBudget::new(150);
+    let ctx = ContextBuilder::new()
+        .with_system_directive("You are Aria.")
+        .with_personality(personality)
+        .with_state(state)
+        .with_relationship(rel)
+        .with_memories(memories)
+        .with_user_input("Hôm nay chúng ta làm gì tiếp theo?")
+        .build(tight_budget);
+
+    // Assert Critical items are strictly kept
+    let has_user_input = ctx.items.iter().any(|i| i.source == ContextSource::User && i.priority.is_critical());
+    assert!(has_user_input, "User input must be preserved as Critical");
+
+    let has_system = ctx.items.iter().any(|i| i.source == ContextSource::System && i.priority.is_critical());
+    assert!(has_system, "System directive must be preserved as Critical");
+
+    // Assert total tokens respected
+    assert!(ctx.total_tokens <= 150, "Context total tokens ({}) must fit budget (150)", ctx.total_tokens);
+
+    // Low priority memory should be pruned
+    assert!(ctx.breakdown.dropped_items_count >= 1, "Low priority items must be pruned when exceeding budget");
+
+    // Prompt render works
+    let rendered = ctx.render_for_llm();
+    assert!(rendered.contains("Hôm nay chúng ta làm gì tiếp theo?"));
 }
 
 

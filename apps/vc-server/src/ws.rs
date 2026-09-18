@@ -11,6 +11,7 @@ use serde_json::json;
 use std::time::Duration;
 use tokio::time::sleep;
 use uuid::Uuid;
+use vc_core::context::{ContextBudget, ContextBuilder};
 use vc_core::decision::action::{Action, ActionType};
 use vc_core::decision::context::DecisionContext;
 use vc_core::decision::policy::BehaviorPolicy;
@@ -203,21 +204,32 @@ async fn process_user_interaction(
 
     sleep(Duration::from_millis(100)).await;
 
-    // 4. Build Context Breakdown
-    let user_token_est = user_input.len() / 4 + 10;
+    // 4. Build Context Breakdown (Skill 16: Context Engineering)
+    let personality = state.personality.read().await.clone();
+    let assembled_context = ContextBuilder::new()
+        .with_system_directive("You are Aria, an independent living virtual companion.")
+        .with_personality(personality.clone())
+        .with_state(char_state.clone())
+        .with_relationship(rel.clone())
+        .with_memories(retrieved_memories.clone())
+        .with_user_input(&user_input)
+        .build(ContextBudget::standard_4k());
+
     let _ = sender
         .send(Message::Text(
             json!({
                 "event": "context_assembled",
                 "interaction_id": interaction_id,
-                "token_budget": 4096,
-                "tokens_used": 680 + user_token_est,
+                "token_budget": assembled_context.budget.total_tokens,
+                "tokens_used": assembled_context.total_tokens,
                 "breakdown": {
-                    "personality_tokens": 280,
-                    "memory_tokens": 190,
-                    "state_tokens": 150,
-                    "user_input_tokens": user_token_est,
-                    "system_directive_tokens": 100
+                    "personality_tokens": assembled_context.breakdown.personality_tokens,
+                    "memory_tokens": assembled_context.breakdown.memory_tokens,
+                    "state_tokens": assembled_context.breakdown.state_tokens,
+                    "relationship_tokens": assembled_context.breakdown.relationship_tokens,
+                    "user_input_tokens": assembled_context.breakdown.user_tokens,
+                    "system_directive_tokens": assembled_context.breakdown.system_tokens,
+                    "dropped_items_count": assembled_context.breakdown.dropped_items_count
                 }
             })
             .to_string().into(),
@@ -227,7 +239,6 @@ async fn process_user_interaction(
     sleep(Duration::from_millis(120)).await;
 
     // 5. Decision Engine (Skill 15: Decision Engineering)
-    let personality = state.personality.read().await.clone();
     let decision_ctx = DecisionContext::new(
         &user_input,
         Some(actor_id.clone()),

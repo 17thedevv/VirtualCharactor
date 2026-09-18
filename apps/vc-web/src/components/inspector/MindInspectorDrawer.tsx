@@ -445,6 +445,13 @@ export const MindInspectorDrawer: React.FC<MindInspectorDrawerProps> = ({
                     }}
                   />
                   <div
+                    title="Relationship"
+                    style={{
+                      width: `${((contextBreakdown.breakdown.relationship_tokens ?? 0) / contextBreakdown.token_budget) * 100}%`,
+                      background: 'var(--accent-rose)',
+                    }}
+                  />
+                  <div
                     title="User Prompt"
                     style={{
                       width: `${(contextBreakdown.breakdown.user_input_tokens / contextBreakdown.token_budget) * 100}%`,
@@ -468,10 +475,24 @@ export const MindInspectorDrawer: React.FC<MindInspectorDrawerProps> = ({
                     <span style={{ color: 'var(--text-secondary)' }}>Trạng thái ({contextBreakdown.breakdown.state_tokens}t)</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-rose)' }} />
+                    <span style={{ color: 'var(--text-secondary)' }}>Quan hệ ({contextBreakdown.breakdown.relationship_tokens ?? 0}t)</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--emotion-melancholic)' }} />
                     <span style={{ color: 'var(--text-secondary)' }}>Tin nhắn ({contextBreakdown.breakdown.user_input_tokens}t)</span>
                   </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--text-muted)' }} />
+                    <span style={{ color: 'var(--text-secondary)' }}>Chỉ thị ({contextBreakdown.breakdown.system_directive_tokens}t)</span>
+                  </div>
                 </div>
+
+                {(contextBreakdown.breakdown.dropped_items_count ?? 0) > 0 && (
+                  <div style={{ fontSize: '0.7rem', color: 'var(--accent-amber)', fontStyle: 'italic', marginTop: '2px' }}>
+                    ⚡ Đã bảo toàn ngân sách: cắt tỉa {contextBreakdown.breakdown.dropped_items_count} mục độ ưu tiên thấp.
+                  </div>
+                )}
               </>
             ) : (
               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>

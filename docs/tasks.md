@@ -216,9 +216,9 @@ crates/vc-core/context/
 crates/vc-runtime/
 crates/vc-llm/
 crates/vc-storage/
-B1. Context
+B1. Context [DONE]
 
-Đây là phần quan trọng nhất của Dev B.
+(Đã hoàn tất toàn bộ Context Module, ContextItem, ContextSource, ContextPriority, ContextBudget, ContextBuilder, ContextPrioritizer, tích hợp WebSocket Live Token Breakdown & Mind Inspector).
 
 Phụ trách:
 

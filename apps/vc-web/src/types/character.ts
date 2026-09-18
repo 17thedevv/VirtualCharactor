@@ -136,8 +136,10 @@ export interface ContextBreakdownData {
     personality_tokens: number;
     memory_tokens: number;
     state_tokens: number;
+    relationship_tokens?: number;
     user_input_tokens: number;
     system_directive_tokens: number;
+    dropped_items_count?: number;
   };
 }
 
