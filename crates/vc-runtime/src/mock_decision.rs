@@ -39,26 +39,7 @@ mod tests {
         let engine = MockDecisionEngine;
         let context = Context { items: vec![] };
         let personality = vc_core::personality::Personality::baseline_aria();
-        let state = CharacterState {
-            emotion: vc_core::state::EmotionState {
-                primary_emotion: "calm".into(),
-                intensity: 0.5,
-            },
-            cognition: vc_core::state::CognitiveState {
-                current_focus: "none".into(),
-                cognitive_load: 0.0,
-            },
-            behavior: vc_core::state::BehaviorState {
-                current_activity: "idle".into(),
-            },
-            goals: vc_core::state::Goals {
-                active_goals: vec![],
-            },
-            session: vc_core::state::SessionState {
-                session_id: "test".into(),
-                variables: std::collections::HashMap::new(),
-            },
-        };
+        let state = CharacterState::default_aria();
 
         let decision = engine.make_decision(&context, &personality, &state).unwrap();
         assert_eq!(decision.result.selected_action.action_type, "speak");

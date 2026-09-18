@@ -14,6 +14,7 @@ use vc_core::state::*;
 use vc_llm::mock::MockLlmProvider;
 use vc_llm::provider::{LlmProvider, LlmRequest};
 use vc_runtime::mock_decision::MockDecisionEngine;
+use vc_runtime::rule_emotion_engine::RuleBasedEmotionEngine;
 use vc_runtime::runtime::RuntimeEngine;
 
 fn build_test_personality() -> Personality {
@@ -21,26 +22,7 @@ fn build_test_personality() -> Personality {
 }
 
 fn build_test_state() -> CharacterState {
-    CharacterState {
-        emotion: EmotionState {
-            primary_emotion: "calm".into(),
-            intensity: 0.3,
-        },
-        cognition: CognitiveState {
-            current_focus: "conversation".into(),
-            cognitive_load: 0.2,
-        },
-        behavior: BehaviorState {
-            current_activity: "listening".into(),
-        },
-        goals: Goals {
-            active_goals: vec!["answer user question".into()],
-        },
-        session: SessionState {
-            session_id: "integration-test-1".into(),
-            variables: std::collections::HashMap::new(),
-        },
-    }
+    CharacterState::default_aria()
 }
 
 fn build_test_context() -> Context {
@@ -124,13 +106,15 @@ fn test_personality_is_not_state() {
     // Personality describes stable tendencies
     assert!(personality.traits.curiosity.value() > 0.0);
 
-    // State describes current conditions
-    assert_eq!(state.emotion.primary_emotion, "calm");
+    // State describes current conditions — dominant emotion
+    let (dominant_axis, _score) = state.emotion.dominant_emotion();
+    assert_eq!(dominant_axis.name(), "curiosity"); // Aria defaults to curious
 
     // They are independent types — modifying one does not affect the other
     let mut state2 = state.clone();
-    state2.emotion.primary_emotion = "excited".into();
-    assert_ne!(state2.emotion.primary_emotion, "calm");
+    state2.emotion.joy = EmotionScore::clamped(0.99);
+    let (new_dominant, _) = state2.emotion.dominant_emotion();
+    assert_eq!(new_dominant.name(), "joy");
     // personality unchanged
     assert_eq!(personality.traits.score("curiosity"), Some(0.92));
 }
@@ -159,4 +143,96 @@ fn test_decision_is_not_generation() {
 
     // These are separate concerns
     assert_ne!(decision.result.selected_action.payload, response.text);
+}
+
+#[test]
+fn test_emotion_engine_integration() {
+    use vc_core::state::engine::EmotionEngine;
+
+    let engine = RuleBasedEmotionEngine::new();
+    let mut state = build_test_state();
+    let personality = build_test_personality();
+
+    // Simulate a sad message
+    let delta = engine.evaluate(&state.emotion, "Mình đang rất buồn", &personality);
+    assert!(delta.sadness > 0.0, "Sadness should increase");
+
+    // Apply delta
+    let old_sadness = state.emotion.sadness.value();
+    state.emotion.apply_delta(&delta);
+    assert!(state.emotion.sadness.value() > old_sadness, "Sadness should have increased");
+
+    // Now simulate a happy message
+    let delta2 = engine.evaluate(&state.emotion, "Cảm ơn bạn, mình vui lắm!", &personality);
+    assert!(delta2.joy > 0.0, "Joy should increase");
+
+    state.emotion.apply_delta(&delta2);
+    assert!(state.emotion.joy.value() > 0.3, "Joy should be above neutral");
+}
+
+#[test]
+fn test_emotion_decay_over_time() {
+    let mut state = build_test_state();
+
+    // Set equal extreme emotions to compare decay rates
+    state.emotion.anger = EmotionScore::clamped(0.8);
+    state.emotion.surprise = EmotionScore::clamped(0.8);
+
+    let initial_anger = state.emotion.anger.value();
+    let initial_surprise = state.emotion.surprise.value();
+
+    // Short decay (10 seconds) — enough to see differential rates
+    state.emotion.decay(10);
+
+    assert!(
+        state.emotion.anger.value() < initial_anger,
+        "Anger should decay: {} -> {}",
+        initial_anger,
+        state.emotion.anger.value()
+    );
+    assert!(
+        state.emotion.surprise.value() < initial_surprise,
+        "Surprise should decay: {} -> {}",
+        initial_surprise,
+        state.emotion.surprise.value()
+    );
+
+    // Surprise decay rate (λ=0.15) > anger decay rate (λ=0.08)
+    // So after same time, surprise should have lost more than anger
+    let anger_remaining = state.emotion.anger.value();
+    let surprise_remaining = state.emotion.surprise.value();
+    // Anger should have decayed less (retained more) than surprise
+    assert!(
+        anger_remaining > surprise_remaining,
+        "Anger (slower decay) should retain more than surprise (faster decay): anger={} surprise={}",
+        anger_remaining,
+        surprise_remaining
+    );
+}
+
+#[test]
+fn test_effective_behavior_personality_emotion_interaction() {
+    let personality = build_test_personality();
+    let mut state = build_test_state();
+
+    // Normal state → playfulness should be close to personality baseline
+    let normal_play = state.effective_playfulness(&personality);
+    assert!(normal_play > 0.6, "Normal playfulness should be moderate-high");
+
+    // Sad state → playfulness suppressed
+    state.emotion.sadness = EmotionScore::clamped(0.9);
+    let sad_play = state.effective_playfulness(&personality);
+    assert!(
+        sad_play < normal_play,
+        "Sadness should suppress playfulness: {} vs {}",
+        sad_play,
+        normal_play
+    );
+
+    // Sync behavior should update behavioral state
+    state.sync_behavior(&personality);
+    assert!(
+        state.behavior.seriousness.value() > 0.4,
+        "Seriousness should increase when sad"
+    );
 }

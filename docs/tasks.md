@@ -55,9 +55,9 @@ Chưa làm:
 prompt generation
 LLM personality extraction
 personality learning
-A2. State + Emotion
+A2. State + Emotion [DONE]
 
-Đây là phần quan trọng.
+Đây là phần quan trọng (Đã hoàn tất toàn bộ State Transition, Multi-Axis Emotion, RuleEmotionEngine và đồng bộ Web/CLI).
 
 state/
 ├── mod.rs

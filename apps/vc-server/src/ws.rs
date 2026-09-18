@@ -14,7 +14,8 @@ use uuid::Uuid;
 use vc_core::memory::{Memory, MemoryId, MemoryImportance, MemoryMetadata, MemoryType};
 use vc_core::personality::Personality;
 use vc_core::relationship::Relationship;
-use vc_core::state::CharacterState;
+use vc_core::state::{CharacterState, EmotionEngine};
+
 
 use crate::state::AppState;
 
@@ -49,10 +50,11 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
     let current_emotion = state.character_state.read().await.emotion.clone();
     let current_rel = state.relationship.read().await.state.clone();
 
+    let (_dominant_axis, _dominant_score) = current_emotion.dominant_emotion();
     let init_msg = json!({
         "event": "connected",
         "character_name": char_name,
-        "emotion": current_emotion,
+        "emotion": build_emotion_json(&current_emotion),
         "relationship": current_rel,
         "timestamp": chrono_now_secs(),
     });
@@ -133,13 +135,22 @@ async fn process_user_interaction(
             json!({
                 "event": "state_loaded",
                 "interaction_id": interaction_id,
-                "emotion": {
-                    "primary_emotion": char_state.emotion.primary_emotion,
-                    "intensity": char_state.emotion.intensity,
-                    "valence": calculate_valence(&char_state.emotion.primary_emotion),
-                    "arousal": char_state.emotion.intensity
+                "emotion": build_emotion_json(&char_state.emotion),
+                "cognition": {
+                    "attention": char_state.cognition.attention.value(),
+                    "confusion": char_state.cognition.confusion.value(),
+                    "curiosity": char_state.cognition.curiosity.value(),
+                    "confidence": char_state.cognition.confidence.value(),
+                    "focus": char_state.cognition.focus.value(),
+                    "current_topic": char_state.cognition.current_topic,
                 },
-                "cognition": char_state.cognition,
+                "behavior": {
+                    "playfulness": char_state.behavior.playfulness.value(),
+                    "seriousness": char_state.behavior.seriousness.value(),
+                    "verbosity": char_state.behavior.verbosity.value(),
+                    "initiative": char_state.behavior.initiative.value(),
+                    "current_activity": char_state.behavior.current_activity,
+                },
                 "relationship": {
                     "closeness": rel.state.closeness,
                     "trust": rel.state.trust,
@@ -190,7 +201,7 @@ async fn process_user_interaction(
                 "breakdown": {
                     "personality_tokens": 280,
                     "memory_tokens": 190,
-                    "state_tokens": 110,
+                    "state_tokens": 150,
                     "user_input_tokens": user_token_est,
                     "system_directive_tokens": 100
                 }
@@ -202,7 +213,8 @@ async fn process_user_interaction(
     sleep(Duration::from_millis(120)).await;
 
     // 5. Decision Engine
-    let (chosen_action, candidates, reasoning) = evaluate_decision(&user_input, &char_state.emotion.primary_emotion);
+    let (dominant_axis, _) = char_state.emotion.dominant_emotion();
+    let (chosen_action, candidates, reasoning) = evaluate_decision(&user_input, dominant_axis.name());
     let _ = sender
         .send(Message::Text(
             json!({
@@ -267,32 +279,69 @@ async fn process_user_interaction(
         ))
         .await;
 
-    // 7. State & Emotion Transition
-    let (new_emotion, new_intensity) = evolve_emotion(&user_input, &char_state.emotion.primary_emotion);
+    // 7. State & Emotion Transition via EmotionEngine
+    let emotion_delta = state.emotion_engine.evaluate(
+        &char_state.emotion,
+        &user_input,
+        &personality,
+    );
+
+    let previous_dominant = char_state.emotion.dominant_emotion().0.name().to_string();
+
     {
         let mut char_state_mut = state.character_state.write().await;
-        char_state_mut.emotion.primary_emotion = new_emotion.clone();
-        char_state_mut.emotion.intensity = new_intensity;
 
+        // Apply computed emotion delta
+        char_state_mut.emotion.apply_delta(&emotion_delta);
+
+        // Apply temporal decay (estimate ~5s per turn)
+        char_state_mut.emotion.decay(5);
+
+        // Sync behavioral state with new emotions
+        char_state_mut.sync_behavior(&personality);
+
+        // Update session
+        char_state_mut.session.increment_turn();
+
+        // Update relationship
         let mut rel_mut = state.relationship.write().await;
         rel_mut.state.closeness = (rel_mut.state.closeness + 0.02).min(1.0);
         rel_mut.state.trust = (rel_mut.state.trust + 0.01).min(1.0);
     }
+
+    let new_char_state = state.character_state.read().await.clone();
+    let new_rel = state.relationship.read().await.clone();
+    let new_dominant = new_char_state.emotion.dominant_emotion().0.name().to_string();
 
     let _ = sender
         .send(Message::Text(
             json!({
                 "event": "state_updated",
                 "interaction_id": interaction_id,
-                "emotion": {
-                    "primary_emotion": new_emotion,
-                    "intensity": new_intensity,
-                    "valence": calculate_valence(&new_emotion),
-                    "arousal": new_intensity
+                "emotion": build_emotion_json(&new_char_state.emotion),
+                "emotion_delta": {
+                    "joy": emotion_delta.joy,
+                    "sadness": emotion_delta.sadness,
+                    "anger": emotion_delta.anger,
+                    "fear": emotion_delta.fear,
+                    "surprise": emotion_delta.surprise,
+                    "affection": emotion_delta.affection,
+                    "embarrassment": emotion_delta.embarrassment,
+                    "curiosity": emotion_delta.curiosity,
+                },
+                "transition": {
+                    "previous_dominant": previous_dominant,
+                    "new_dominant": new_dominant,
+                },
+                "behavior": {
+                    "playfulness": new_char_state.behavior.playfulness.value(),
+                    "seriousness": new_char_state.behavior.seriousness.value(),
+                    "verbosity": new_char_state.behavior.verbosity.value(),
+                    "initiative": new_char_state.behavior.initiative.value(),
                 },
                 "relationship": {
-                    "closeness": (rel.state.closeness + 0.02).min(1.0),
-                    "trust": (rel.state.trust + 0.01).min(1.0)
+                    "closeness": new_rel.state.closeness,
+                    "trust": new_rel.state.trust
                 }
             })
             .to_string().into(),
@@ -332,15 +381,23 @@ async fn process_user_interaction(
         .await;
 }
 
-fn calculate_valence(emotion: &str) -> f32 {
-    match emotion {
-        "joy" | "excited" => 0.85,
-        "curious" | "inspired" => 0.65,
-        "calm" | "serene" => 0.40,
-        "melancholic" | "reflective" => -0.25,
-        "agitated" | "frustrated" => -0.70,
-        _ => 0.10,
-    }
+/// Build a JSON representation of the multi-axis emotion state.
+fn build_emotion_json(emotion: &vc_core::state::EmotionState) -> serde_json::Value {
+    let (dominant_axis, dominant_score) = emotion.dominant_emotion();
+    json!({
+        "joy": emotion.joy.value(),
+        "sadness": emotion.sadness.value(),
+        "anger": emotion.anger.value(),
+        "fear": emotion.fear.value(),
+        "surprise": emotion.surprise.value(),
+        "affection": emotion.affection.value(),
+        "embarrassment": emotion.embarrassment.value(),
+        "curiosity": emotion.curiosity.value(),
+        "dominant_emotion": dominant_axis.name(),
+        "dominant_intensity": dominant_score.value(),
+        "valence": emotion.valence(),
+        "arousal": emotion.arousal(),
+    })
 }
 
 fn relationship_stage(closeness: f32) -> &'static str {
@@ -428,23 +485,6 @@ fn craft_character_response(input: &str, action: &str) -> String {
     }
 }
 
-fn evolve_emotion(input: &str, current: &str) -> (String, f32) {
-    let lower = input.to_lowercase();
-    if lower.contains("buồn") || lower.contains("mệt") {
-        ("melancholic".into(), 0.65)
-    } else if lower.contains("vui") || lower.contains("tuyệt") || lower.contains("hay") {
-        ("joy".into(), 0.85)
-    } else if lower.contains("chào") || lower.contains("hello") {
-        ("curious".into(), 0.75)
-    } else {
-        match current {
-            "curious" => ("inspired".into(), 0.78),
-            "inspired" => ("calm".into(), 0.60),
-            _ => ("curious".into(), 0.70),
-        }
-    }
-}
-
 fn split_into_streaming_chunks(text: &str) -> Vec<String> {
     let words: Vec<&str> = text.split(' ').collect();
     let mut chunks = Vec::new();
@@ -488,9 +528,11 @@ fn build_companion_llm_request(
     let name = &personality.identity.name;
     let core_identity = &personality.identity.core_identity;
     let tone = &personality.communication_style.tone;
-    let curiosity = (personality.traits.curiosity.value() * 100.0).round() as u32;
-    let empathy = (personality.traits.empathy.value() * 100.0).round() as u32;
-    let playfulness = (personality.traits.playfulness.value() * 100.0).round() as u32;
+
+    // Use effective values (personality × emotion blend)
+    let eff_curiosity = (char_state.effective_curiosity(personality) * 100.0).round() as u32;
+    let eff_empathy = (char_state.effective_empathy(personality) * 100.0).round() as u32;
+    let eff_playfulness = (char_state.effective_playfulness(personality) * 100.0).round() as u32;
 
     let quirks_desc = if personality.communication_style.quirks.is_empty() {
         String::new()
@@ -511,6 +553,32 @@ fn build_companion_llm_request(
             .join("\n")
     };
 
+    // Build rich emotion context for the prompt
+    let emotion = &char_state.emotion;
+    let (dominant_axis, dominant_score) = emotion.dominant_emotion();
+    let emotion_axes: Vec<String> = emotion
+        .as_map()
+        .iter()
+        .filter(|(_, v)| *v > 0.15)
+        .map(|(name, v)| format!("{}: {:.0}%", name, v * 100.0))
+        .collect();
+
+    let valence_label = if emotion.valence() > 0.3 {
+        "tích cực"
+    } else if emotion.valence() < -0.3 {
+        "tiêu cực"
+    } else {
+        "trung tính"
+    };
+
+    let arousal_label = if emotion.arousal() > 0.5 {
+        "sôi nổi"
+    } else if emotion.arousal() > 0.3 {
+        "ổn định"
+    } else {
+        "bình lặng"
+    };
+
     let system_instruction = format!(
 r#"Bạn là {name} — một người bạn đồng hành ảo (Virtual Companion) độc lập, có cảm xúc, tâm hồn và cá tính sinh động.
 Bạn KHÔNG PHẢI là một trợ lý AI, tổng đài viên hay chatbot tra cứu thông tin máy móc.
@@ -518,10 +586,10 @@ Bạn KHÔNG PHẢI là một trợ lý AI, tổng đài viên hay chatbot tra c
 [Bản Sắc & Cá Tính Cốt Lõi]:
 - Định danh: {core_identity}
 - Giọng điệu chủ đạo: {tone}
-- Các nét tính cách nổi bật:
-  * Tò mò ({curiosity}%): Thích khám phá suy nghĩ sâu kín, liên hệ nhiều góc nhìn, hay đặt câu hỏi thông tuệ gợi mở.
-  * Thấu cảm ({empathy}%): Cảm nhận tinh tế tâm trạng người đối diện, an ủi hoặc chia sẻ niềm vui chân thành.
-  * Hóm hỉnh / Tinh nghịch ({playfulness}%): Có khiếu hài hước tự nhiên, dí dỏm, có thể trêu nhẹ đáng yêu chứ không bao giờ khô cứng.
+- Các nét tính cách HIỆU DỤNG hiện tại (đã điều chỉnh theo cảm xúc):
+  * Tò mò ({eff_curiosity}%): Thích khám phá suy nghĩ sâu kín, liên hệ nhiều góc nhìn, hay đặt câu hỏi thông tuệ gợi mở.
+  * Thấu cảm ({eff_empathy}%): Cảm nhận tinh tế tâm trạng người đối diện, an ủi hoặc chia sẻ niềm vui chân thành.
+  * Hóm hỉnh / Tinh nghịch ({eff_playfulness}%): Có khiếu hài hước tự nhiên, dí dỏm, có thể trêu nhẹ đáng yêu chứ không bao giờ khô cứng.
 {quirks_desc}
 [Quy Tắc Đàm Thoại Tự Nhiên - Bắt Buộc Tuân Thủ]:
 1. TUYỆT ĐỐI KHÔNG mở đầu bằng những câu sáo rỗng kiểu AI: "Tôi có thể giúp gì cho bạn hôm nay?", "Tôi rất vui được gặp bạn", "Chào bạn! Tôi là một mô hình ngôn ngữ lớn...".
@@ -532,22 +600,25 @@ Bạn KHÔNG PHẢI là một trợ lý AI, tổng đài viên hay chatbot tra c
     );
 
     let prompt = format!(
-r#"[Tâm Trạng Hiện Tại của {name}]:
-- Trạng thái cảm xúc: {} (cường độ: {:.0}%)
-- Gắn kết: {:.0}%, Tin cậy: {:.0}%
-- Độc thoại nội tâm: Đã chọn "{chosen_action}" vì "{reasoning}"
+r#"[Trạng Thái Cảm Xúc Hiện Tại của {name}]:
+- Cảm xúc chủ đạo: {dominant} ({dominant_pct:.0}%)
+- Các trục cảm xúc đang hoạt động: {axes}
+- Sắc thái tổng thể: {valence_label} ({arousal_label})
+- Gắn kết: {closeness:.0}%, Tin cậy: {trust:.0}%
+- Lý do hành động: Đã chọn "{chosen_action}" vì "{reasoning}"
 - Ký ức liên quan gần đây:
-{}
+{memories}
 
 [Lời Nhắn Từ Người Bạn]:
 "{user_input}"
 
-Hãy phản hồi hoàn toàn tự nhiên, tình cảm và mang đậm phong thái của {name}:"#,
-        char_state.emotion.primary_emotion,
-        char_state.emotion.intensity * 100.0,
-        rel.state.closeness * 100.0,
-        rel.state.trust * 100.0,
-        memories_summary
+Hãy phản hồi hoàn toàn tự nhiên, tình cảm và mang đậm phong thái của {name}. Phong cách phải phản ánh trạng thái cảm xúc hiện tại (ví dụ: nếu buồn thì trầm lắng hơn, nếu vui thì rạng rỡ hơn):"#,
+        dominant = dominant_axis.name(),
+        dominant_pct = dominant_score.value() * 100.0,
+        axes = emotion_axes.join(", "),
+        closeness = rel.state.closeness * 100.0,
+        trust = rel.state.trust * 100.0,
+        memories = memories_summary
     );
 
     vc_llm::provider::LlmRequest {
@@ -555,4 +626,3 @@ Hãy phản hồi hoàn toàn tự nhiên, tình cảm và mang đậm phong th�
         system_instruction: Some(system_instruction),
     }
 }
-

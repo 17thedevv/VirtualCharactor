@@ -38,26 +38,7 @@ fn main() {
     let char_id = CharacterId::new();
     let context = Context { items: vec![] };
     let personality = vc_core::personality::Personality::baseline_aria();
-    let state = vc_core::state::CharacterState {
-        emotion: vc_core::state::EmotionState {
-            primary_emotion: "calm".into(),
-            intensity: 0.5,
-        },
-        cognition: vc_core::state::CognitiveState {
-            current_focus: "none".into(),
-            cognitive_load: 0.0,
-        },
-        behavior: vc_core::state::BehaviorState {
-            current_activity: "idle".into(),
-        },
-        goals: vc_core::state::Goals {
-            active_goals: vec![],
-        },
-        session: vc_core::state::SessionState {
-            session_id: "cli-session-1".into(),
-            variables: std::collections::HashMap::new(),
-        },
-    };
+    let state = vc_core::state::CharacterState::default_aria();
 
     // 5. Execute flow: Context → Decision → LLM → Response
     println!("\n--- Executing Decision Cycle ---");

@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
@@ -6,8 +5,9 @@ use vc_core::character::{Character, CharacterId};
 use vc_core::memory::{Memory, MemoryId, MemoryImportance, MemoryMetadata, MemoryType};
 use vc_core::personality::*;
 use vc_core::relationship::{Relationship, RelationshipId, RelationshipState};
-use vc_core::state::{BehaviorState, CharacterState, CognitiveState, EmotionState, Goals, SessionState};
+use vc_core::state::CharacterState;
 use vc_llm::mock::MockLlmProvider;
+use vc_runtime::rule_emotion_engine::RuleBasedEmotionEngine;
 use vc_runtime::runtime::RuntimeEngine;
 
 #[derive(Clone)]
@@ -18,6 +18,7 @@ pub struct AppState {
     pub relationship: Arc<RwLock<Relationship>>,
     pub memories: Arc<RwLock<Vec<Memory>>>,
     pub runtime: Arc<RuntimeEngine>,
+    pub emotion_engine: Arc<RuleBasedEmotionEngine>,
 }
 
 impl AppState {
@@ -31,29 +32,7 @@ impl AppState {
 
         let personality = Personality::baseline_aria();
 
-        let character_state = CharacterState {
-            emotion: EmotionState {
-                primary_emotion: "curious".into(),
-                intensity: 0.7,
-            },
-            cognition: CognitiveState {
-                current_focus: "attending to companion".into(),
-                cognitive_load: 0.2,
-            },
-            behavior: BehaviorState {
-                current_activity: "active_listening".into(),
-            },
-            goals: Goals {
-                active_goals: vec![
-                    "Establish meaningful rapport".into(),
-                    "Understand user perspectives".into(),
-                ],
-            },
-            session: SessionState {
-                session_id: "session-web-01".into(),
-                variables: HashMap::new(),
-            },
-        };
+        let character_state = CharacterState::default_aria();
 
         let relationship = Relationship {
             id: RelationshipId(Uuid::new_v4()),
@@ -111,6 +90,7 @@ impl AppState {
             }
         };
         let runtime = Arc::new(RuntimeEngine::new(llm));
+        let emotion_engine = Arc::new(RuleBasedEmotionEngine::new());
 
         Self {
             character: Arc::new(RwLock::new(character)),
@@ -119,6 +99,7 @@ impl AppState {
             relationship: Arc::new(RwLock::new(relationship)),
             memories: Arc::new(RwLock::new(memories)),
             runtime,
+            emotion_engine,
         }
     }
 

@@ -1,6 +1,16 @@
 export interface EmotionData {
-  primary_emotion: string;
-  intensity: number;
+  // Multi-axis emotion scores [0, 1]
+  joy: number;
+  sadness: number;
+  anger: number;
+  fear: number;
+  surprise: number;
+  affection: number;
+  embarrassment: number;
+  curiosity: number;
+  // Computed values
+  dominant_emotion: string;
+  dominant_intensity: number;
   valence: number;
   arousal: number;
 }

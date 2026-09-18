@@ -107,10 +107,18 @@ export const App: React.FC = () => {
   const [personality, setPersonality] = useState<PersonalityData>(initialPersonality);
 
   const [emotion, setEmotion] = useState<EmotionData>({
-    primary_emotion: 'curious',
-    intensity: 0.75,
-    valence: 0.65,
-    arousal: 0.75,
+    joy: 0.30,
+    sadness: 0.05,
+    anger: 0.02,
+    fear: 0.03,
+    surprise: 0.05,
+    affection: 0.40,
+    embarrassment: 0.02,
+    curiosity: 0.65,
+    dominant_emotion: 'curiosity',
+    dominant_intensity: 0.65,
+    valence: 0.45,
+    arousal: 0.35,
   });
 
   const [relationship, setRelationship] = useState<RelationshipData>({
@@ -157,11 +165,7 @@ export const App: React.FC = () => {
         case 'connected':
           if (data.character_name) setCharacterName(data.character_name);
           if (data.emotion) {
-            setEmotion((prev) => ({
-              ...prev,
-              primary_emotion: data.emotion.primary_emotion,
-              intensity: data.emotion.intensity,
-            }));
+            setEmotion(data.emotion);
           }
           break;
 
@@ -256,10 +260,18 @@ export const App: React.FC = () => {
           setDecisionTrace(null);
           setContextBreakdown(null);
           setEmotion({
-            primary_emotion: 'curious',
-            intensity: 0.75,
-            valence: 0.65,
-            arousal: 0.75,
+            joy: 0.30,
+            sadness: 0.05,
+            anger: 0.02,
+            fear: 0.03,
+            surprise: 0.05,
+            affection: 0.40,
+            embarrassment: 0.02,
+            curiosity: 0.65,
+            dominant_emotion: 'curiosity',
+            dominant_intensity: 0.65,
+            valence: 0.45,
+            arousal: 0.35,
           });
           break;
       }

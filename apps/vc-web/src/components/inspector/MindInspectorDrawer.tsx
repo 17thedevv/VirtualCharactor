@@ -211,8 +211,32 @@ export const MindInspectorDrawer: React.FC<MindInspectorDrawerProps> = ({
                 padding: '0 4px',
               }}
             >
-              <span>Cảm xúc: <strong style={{ color: 'var(--accent-cyan)' }}>{emotion.primary_emotion}</strong></span>
-              <span>Cường độ: <strong style={{ color: 'var(--text-primary)' }}>{Math.round(emotion.intensity * 100)}%</strong></span>
+              <span>Cảm xúc chủ đạo: <strong style={{ color: 'var(--accent-cyan)' }}>{emotion.dominant_emotion || 'curiosity'}</strong></span>
+              <span>Cường độ: <strong style={{ color: 'var(--text-primary)' }}>{Math.round((emotion.dominant_intensity ?? 0.5) * 100)}%</strong></span>
+            </div>
+
+            {/* 8-Axis Spectrum Breakdown */}
+            <div style={{ width: '100%', marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
+              {[
+                { key: 'joy', label: 'Joy (Hân hoan)', val: emotion.joy, color: '#ff9f43' },
+                { key: 'affection', label: 'Affection (Yêu mến)', val: emotion.affection, color: '#ff758c' },
+                { key: 'curiosity', label: 'Curiosity (Tò mò)', val: emotion.curiosity, color: '#05d69e' },
+                { key: 'surprise', label: 'Surprise (Bất ngờ)', val: emotion.surprise, color: '#f9ca24' },
+                { key: 'embarrassment', label: 'Embarrassment (Bối rối)', val: emotion.embarrassment, color: '#e056fd' },
+                { key: 'sadness', label: 'Sadness (U sầu)', val: emotion.sadness, color: '#9d4edd' },
+                { key: 'fear', label: 'Fear (Bất an)', val: emotion.fear, color: '#70a1ff' },
+                { key: 'anger', label: 'Anger (Căng thẳng)', val: emotion.anger, color: '#ff416c' },
+              ].map(item => (
+                <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.7rem' }}>
+                  <span style={{ width: '130px', color: 'var(--text-muted)' }}>{item.label}</span>
+                  <div style={{ flex: 1, height: '4px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.round((item.val ?? 0) * 100)}%`, height: '100%', background: item.color, transition: 'width 0.3s ease' }} />
+                  </div>
+                  <span style={{ width: '32px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
+                    {Math.round((item.val ?? 0) * 100)}%
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
