@@ -1,0 +1,19 @@
+[package]
+name = "vc-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+vc-core = { path = "../../crates/vc-core" }
+vc-runtime = { path = "../../crates/vc-runtime" }
+vc-llm = { path = "../../crates/vc-llm" }
+vc-storage = { path = "../../crates/vc-storage" }
+tokio = { version = "1.38", features = ["full"] }
+axum = { version = "0.8", features = ["ws"] }
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.8", features = ["v4", "serde"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+futures = "0.3"

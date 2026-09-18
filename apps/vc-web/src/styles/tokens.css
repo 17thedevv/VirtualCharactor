@@ -1,0 +1,72 @@
+:root {
+  /* Surface & Background Palette */
+  --bg-deep: #07090e;
+  --bg-subtle: #0d111a;
+  --bg-card: rgba(16, 22, 36, 0.72);
+  --bg-card-hover: rgba(23, 31, 51, 0.85);
+  --bg-glass: rgba(255, 255, 255, 0.03);
+  --bg-glass-active: rgba(255, 255, 255, 0.08);
+
+  /* Border Tokens */
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-medium: rgba(255, 255, 255, 0.14);
+  --border-highlight: rgba(255, 255, 255, 0.28);
+
+  /* Typography */
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Outfit', var(--font-sans);
+  --font-mono: 'JetBrains Mono', 'Space Grotesk', monospace;
+
+  /* Text Colors */
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-faint: #475569;
+
+  /* Primary Brand Accents */
+  --accent-cyan: #00f2fe;
+  --accent-blue: #4facfe;
+  --accent-violet: #8a2be2;
+  --accent-emerald: #05d69e;
+  --accent-amber: #ff9f43;
+  --accent-rose: #ff416c;
+
+  /* Emotion State Palettes */
+  --emotion-calm: #00f2fe;
+  --emotion-calm-glow: rgba(0, 242, 254, 0.35);
+
+  --emotion-joy: #ff9f43;
+  --emotion-joy-glow: rgba(255, 159, 67, 0.40);
+
+  --emotion-curious: #05d69e;
+  --emotion-curious-glow: rgba(5, 214, 158, 0.38);
+
+  --emotion-inspired: #38ef7d;
+  --emotion-inspired-glow: rgba(56, 239, 125, 0.38);
+
+  --emotion-melancholic: #9d4edd;
+  --emotion-melancholic-glow: rgba(157, 78, 221, 0.40);
+
+  --emotion-agitated: #ff416c;
+  --emotion-agitated-glow: rgba(255, 65, 108, 0.45);
+
+  /* Glassmorphism & Elevation */
+  --backdrop-blur: blur(18px);
+  --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.55);
+  --shadow-glow: 0 0 40px rgba(0, 242, 254, 0.18);
+  --shadow-card: 0 12px 40px -8px rgba(0, 0, 0, 0.65);
+
+  /* Radii */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 32px;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-emotion: 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}

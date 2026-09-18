@@ -1,0 +1,27 @@
+# Rust build artifacts
+/target
+target/
+**/*.rs.bk
+*.pdb
+*.exe
+*.dll
+
+# Node / Frontend build artifacts
+apps/vc-web/node_modules/
+apps/vc-web/dist/
+apps/vc-web/.vite/
+apps/vc-web/dist-ssr/
+apps/vc-web/*.local
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.*
+!.env.example

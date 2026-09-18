@@ -4,6 +4,7 @@ members = [
     "crates/vc-runtime",
     "crates/vc-llm",
     "crates/vc-storage",
-    "apps/vc-cli"
+    "apps/vc-cli",
+    "apps/vc-server"
 ]
 resolver = "2"

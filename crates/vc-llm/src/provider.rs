@@ -7,6 +7,6 @@ pub struct LlmResponse {
     pub text: String,
 }
 
-pub trait LlmProvider {
+pub trait LlmProvider: Send + Sync {
     fn generate_text(&self, request: LlmRequest) -> vc_core::Result<LlmResponse>;
 }
