@@ -38,26 +38,7 @@ mod tests {
     fn test_mock_decision_engine_returns_speak() {
         let engine = MockDecisionEngine;
         let context = Context { items: vec![] };
-        let personality = vc_core::personality::Personality {
-            id: vc_core::personality::PersonalityId(Uuid::new_v4()),
-            identity: vc_core::personality::Identity {
-                core_identity: "test".into(),
-                background: "test".into(),
-            },
-            traits: vc_core::personality::Traits(vec![]),
-            values: vc_core::personality::Values(vec![]),
-            preferences: vc_core::personality::Preferences(vec![]),
-            behavior_tendencies: vc_core::personality::BehaviorTendencies(vec![]),
-            communication_style: vc_core::personality::CommunicationStyle {
-                tone: "neutral".into(),
-                quirks: vec![],
-            },
-            decision_tendencies: vc_core::personality::DecisionTendencies {
-                risk_tolerance: "low".into(),
-                primary_drivers: vec![],
-            },
-            boundaries: vc_core::personality::Boundaries(vec![]),
-        };
+        let personality = vc_core::personality::Personality::baseline_aria();
         let state = CharacterState {
             emotion: vc_core::state::EmotionState {
                 primary_emotion: "calm".into(),

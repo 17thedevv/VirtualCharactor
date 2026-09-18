@@ -10,6 +10,8 @@ pub enum CoreError {
     InvalidStateTransition,
     #[error("Provider error: {0}")]
     ProviderError(String),
+    #[error("Validation error: {0}")]
+    ValidationError(String),
     #[error("Internal error: {0}")]
     Internal(String),
 }

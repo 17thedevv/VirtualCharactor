@@ -26,9 +26,9 @@ crates/vc-core/
 ├── relationship/
 ├── memory/
 └── decision/
-A1. Personality
+A1. Personality [DONE]
 
-Xây Personality thành domain model thực sự.
+Xây Personality thành domain model thực sự (Đã hoàn tất theo docs/design/personality.md).
 
 Phụ trách:
 

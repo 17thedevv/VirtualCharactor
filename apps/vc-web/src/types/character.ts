@@ -12,24 +12,76 @@ export interface RelationshipData {
   known_facts: string[];
 }
 
+export interface TraitScores {
+  playfulness: number;
+  empathy: number;
+  curiosity: number;
+  assertiveness: number;
+  patience: number;
+  custom?: Record<string, number>;
+}
+
+export interface ValueItemData {
+  name: string;
+  importance: number;
+  description?: string;
+}
+
+export interface PersonalityGoalData {
+  id: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high';
+}
+
 export interface PersonalityData {
+  id?: string;
   identity: {
+    name?: string;
+    role?: string;
     core_identity: string;
     background: string;
+    age_representation?: string;
   };
-  traits: string[];
-  values: string[];
-  preferences: string[];
-  behavior_tendencies: string[];
+  traits: TraitScores;
+  values: {
+    items: ValueItemData[];
+  };
+  preferences: {
+    likes: string[];
+    dislikes: string[];
+  };
+  behavior_tendencies: {
+    humor: 'low' | 'medium' | 'high';
+    teasing: 'low' | 'medium' | 'high';
+    initiative: 'low' | 'medium' | 'high';
+    emotional_expression: 'low' | 'medium' | 'high';
+    conflict_avoidance: 'low' | 'medium' | 'high';
+  };
   communication_style: {
+    formality: 'low' | 'medium' | 'high';
+    verbosity: 'low' | 'medium' | 'high';
+    emotionality: 'low' | 'medium' | 'high';
+    emoji_usage: 'low' | 'medium' | 'high';
+    humor: 'low' | 'medium' | 'high';
+    directness: 'low' | 'medium' | 'high';
     tone: string;
     quirks: string[];
   };
   decision_tendencies: {
-    risk_tolerance: string;
+    prioritize_user_comfort: 'low' | 'medium' | 'high';
+    prioritize_truth: 'low' | 'medium' | 'high';
+    avoid_unnecessary_conflict: 'low' | 'medium' | 'high';
+    take_initiative: 'low' | 'medium' | 'high';
+    risk_tolerance: 'low' | 'medium' | 'high';
     primary_drivers: string[];
   };
-  boundaries: string[];
+  boundaries: {
+    avoid: string[];
+    preserve: string[];
+  };
+  goals: {
+    items: PersonalityGoalData[];
+  };
 }
 
 export interface MemoryItem {

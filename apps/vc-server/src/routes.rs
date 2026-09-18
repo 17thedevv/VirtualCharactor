@@ -50,12 +50,27 @@ pub async fn update_personality(
     State(state): State<AppState>,
     Json(new_personality): Json<Personality>,
 ) -> impl IntoResponse {
+    if let Err(err) = new_personality.validate() {
+        return (
+            axum::http::StatusCode::BAD_REQUEST,
+            Json(json!({
+                "error": "validation_failed",
+                "message": err.to_string()
+            })),
+        )
+            .into_response();
+    }
+
     let mut personality = state.personality.write().await;
     *personality = new_personality.clone();
-    Json(json!({
-        "status": "updated",
-        "personality": *personality
-    }))
+    (
+        axum::http::StatusCode::OK,
+        Json(json!({
+            "status": "updated",
+            "personality": *personality
+        })),
+    )
+        .into_response()
 }
 
 pub async fn get_memories(State(state): State<AppState>) -> impl IntoResponse {

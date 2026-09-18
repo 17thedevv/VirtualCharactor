@@ -9,35 +9,15 @@ use std::sync::Arc;
 use vc_core::character::CharacterId;
 use vc_core::context::{Context, ContextItem, ContextPriority, ContextSource};
 use vc_core::decision::DecisionEngine;
-use vc_core::personality::*;
+use vc_core::personality::Personality;
 use vc_core::state::*;
 use vc_llm::mock::MockLlmProvider;
 use vc_llm::provider::{LlmProvider, LlmRequest};
 use vc_runtime::mock_decision::MockDecisionEngine;
 use vc_runtime::runtime::RuntimeEngine;
-use uuid::Uuid;
 
 fn build_test_personality() -> Personality {
-    Personality {
-        id: PersonalityId(Uuid::new_v4()),
-        identity: Identity {
-            core_identity: "Test Character".into(),
-            background: "Integration test entity".into(),
-        },
-        traits: Traits(vec!["curious".into(), "calm".into()]),
-        values: Values(vec!["truth".into()]),
-        preferences: Preferences(vec!["brevity".into()]),
-        behavior_tendencies: BehaviorTendencies(vec!["analytical".into()]),
-        communication_style: CommunicationStyle {
-            tone: "neutral".into(),
-            quirks: vec![],
-        },
-        decision_tendencies: DecisionTendencies {
-            risk_tolerance: "low".into(),
-            primary_drivers: vec!["safety".into()],
-        },
-        boundaries: Boundaries(vec!["no harmful content".into()]),
-    }
+    Personality::baseline_aria()
 }
 
 fn build_test_state() -> CharacterState {
@@ -142,7 +122,7 @@ fn test_personality_is_not_state() {
     let state = build_test_state();
 
     // Personality describes stable tendencies
-    assert!(!personality.traits.0.is_empty());
+    assert!(personality.traits.curiosity.value() > 0.0);
 
     // State describes current conditions
     assert_eq!(state.emotion.primary_emotion, "calm");
@@ -152,7 +132,7 @@ fn test_personality_is_not_state() {
     state2.emotion.primary_emotion = "excited".into();
     assert_ne!(state2.emotion.primary_emotion, "calm");
     // personality unchanged
-    assert!(personality.traits.0.contains(&"curious".to_string()));
+    assert_eq!(personality.traits.score("curiosity"), Some(0.92));
 }
 
 #[test]
