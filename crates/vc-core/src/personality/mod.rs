@@ -18,9 +18,9 @@ pub use preferences::Preferences;
 pub use traits::{TraitScore, Traits};
 pub use values::{ValueItem, ValueScore, Values};
 
+use crate::error::Result;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::error::Result;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct PersonalityId(pub Uuid);
@@ -247,7 +247,8 @@ mod tests {
     fn test_serialization_roundtrip() {
         let aria = Personality::baseline_aria();
         let json = serde_json::to_string_pretty(&aria).expect("serialization failed");
-        let deserialized: Personality = serde_json::from_str(&json).expect("deserialization failed");
+        let deserialized: Personality =
+            serde_json::from_str(&json).expect("deserialization failed");
         assert_eq!(aria, deserialized);
     }
 }

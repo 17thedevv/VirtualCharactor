@@ -57,7 +57,11 @@ impl ContextBuilder {
         self
     }
 
-    pub fn with_dialogue_turn(mut self, sender: impl Into<String>, text: impl Into<String>) -> Self {
+    pub fn with_dialogue_turn(
+        mut self,
+        sender: impl Into<String>,
+        text: impl Into<String>,
+    ) -> Self {
         self.dialogue_turns.push((sender.into(), text.into()));
         self
     }
@@ -115,7 +119,10 @@ impl ContextBuilder {
                 items.push(
                     ContextItem::new(
                         ContextSource::Personality,
-                        format!("Thói quen giao tiếp: {}", p.communication_style.quirks.join("; ")),
+                        format!(
+                            "Thói quen giao tiếp: {}",
+                            p.communication_style.quirks.join("; ")
+                        ),
                         ContextPriority::Medium,
                     )
                     .with_source_id(p.id.0.to_string()),
@@ -153,7 +160,10 @@ impl ContextBuilder {
                     "Nhận thức & Hành vi: Chú ý {:.0}%, Hiếu kỳ {:.0}%, Tập trung: {}",
                     s.cognition.attention.value() * 100.0,
                     s.cognition.curiosity.value() * 100.0,
-                    s.cognition.current_topic.as_deref().unwrap_or("Hội thoại tự nhiên")
+                    s.cognition
+                        .current_topic
+                        .as_deref()
+                        .unwrap_or("Hội thoại tự nhiên")
                 ),
                 ContextPriority::Medium,
             ));
@@ -180,7 +190,10 @@ impl ContextBuilder {
                 items.push(
                     ContextItem::new(
                         ContextSource::Relationship,
-                        format!("Thông tin đã biết về người bạn: {}", r.state.known_facts.join("; ")),
+                        format!(
+                            "Thông tin đã biết về người bạn: {}",
+                            r.state.known_facts.join("; ")
+                        ),
                         ContextPriority::Medium,
                     )
                     .with_source_id(r.target_id.clone()),

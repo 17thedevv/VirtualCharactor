@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TopNavbar } from './components/layout/TopNavbar';
 import { EmotionStage } from './components/stage/EmotionStage';
+import { VrmAvatarStage } from './components/avatar/VrmAvatarStage';
 import { DialogueStream } from './components/chat/DialogueStream';
 import { InputBar } from './components/chat/InputBar';
 import { RelationshipHUD } from './components/hud/RelationshipHUD';
 import { MindInspectorDrawer } from './components/inspector/MindInspectorDrawer';
 import { PersonalityEditorModal } from './components/studio/PersonalityEditorModal';
+import { HistoryModal } from './components/history/HistoryModal';
 import { VirtualCharacterClient } from './services/wsClient';
+import { audioPlayer } from './services/audioPlayer';
 import type {
   EmotionData,
   RelationshipData,
@@ -15,6 +18,7 @@ import type {
   ChatMessage,
   DecisionTraceData,
   ContextBreakdownData,
+  WebSearchRecord,
 } from './types/character';
 
 const initialPersonality: PersonalityData = {
@@ -150,9 +154,83 @@ export const App: React.FC = () => {
   const [interactionStatus, setInteractionStatus] = useState<'idle' | 'thinking' | 'speaking' | 'listening'>('idle');
   const [decisionTrace, setDecisionTrace] = useState<DecisionTraceData | null>(null);
   const [contextBreakdown, setContextBreakdown] = useState<ContextBreakdownData | null>(null);
+  const [searchHistory, setSearchHistory] = useState<WebSearchRecord[]>([]);
+  const [currentSearch, setCurrentSearch] = useState<{ query: string; message: string } | null>(null);
+  const activeSearchRef = useRef<WebSearchRecord | null>(null);
 
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [isStudioOpen, setIsStudioOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isVoiceMuted, setIsVoiceMuted] = useState(audioPlayer.isMuted());
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [isTestVoiceLoading, setIsTestVoiceLoading] = useState(false);
+  const [stageMode, setStageMode] = useState<'vrm' | 'orb'>('vrm');
+  const [audioAmplitude, setAudioAmplitude] = useState(0);
+
+  // Connect audioPlayer amplitude and playback callbacks
+  useEffect(() => {
+    audioPlayer.setCallbacks(
+      (amp) => setAudioAmplitude(amp),
+      (playing) => setIsAudioPlaying(playing)
+    );
+
+    // Unlock AudioContext on first user interaction anywhere in the page
+    const handleFirstGesture = () => {
+      audioPlayer.unlockAudioContext();
+      window.removeEventListener('click', handleFirstGesture);
+      window.removeEventListener('keydown', handleFirstGesture);
+      window.removeEventListener('touchstart', handleFirstGesture);
+    };
+    window.addEventListener('click', handleFirstGesture);
+    window.addEventListener('keydown', handleFirstGesture);
+    window.addEventListener('touchstart', handleFirstGesture);
+
+    return () => {
+      window.removeEventListener('click', handleFirstGesture);
+      window.removeEventListener('keydown', handleFirstGesture);
+      window.removeEventListener('touchstart', handleFirstGesture);
+    };
+  }, []);
+
+  // Load persistent search and dialogue history on mount
+  useEffect(() => {
+    fetch('http://127.0.0.1:3000/api/history/searches')
+      .then((res) => res.json())
+      .then((data: any[]) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const recs: WebSearchRecord[] = data.map((d) => ({
+            query: d.query,
+            source: d.source,
+            snippets: d.snippets || [],
+            summary: d.summary,
+            timestamp: d.created_at < 1e11 ? d.created_at * 1000 : d.created_at,
+          }));
+          setSearchHistory((prev) => {
+            const existing = new Set(prev.map((p) => p.query + p.timestamp));
+            const newOnes = recs.filter((r) => !existing.has(r.query + r.timestamp));
+            return [...prev, ...newOnes];
+          });
+        }
+      })
+      .catch((e) => console.warn('Could not load persistent searches:', e));
+
+    fetch('http://127.0.0.1:3000/api/history/dialogues')
+      .then((res) => res.json())
+      .then((data: any[]) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setMessages((prev) => {
+            if (prev.length > 0) return prev;
+            return data.map((d) => ({
+              id: d.id,
+              sender: d.sender,
+              text: d.text,
+              timestamp: d.created_at < 1e11 ? d.created_at * 1000 : d.created_at,
+            }));
+          });
+        }
+      })
+      .catch((e) => console.warn('Could not load persistent dialogues:', e));
+  }, []);
 
   // Initialize WebSocket Client
   useEffect(() => {
@@ -180,6 +258,24 @@ export const App: React.FC = () => {
           if (data.emotion) setEmotion(data.emotion);
           if (data.relationship) setRelationship((prev) => ({ ...prev, ...data.relationship }));
           break;
+
+        case 'tool_executing':
+          setCurrentSearch({ query: data.query, message: data.message });
+          break;
+
+        case 'tool_executed': {
+          const rec: WebSearchRecord = {
+            query: data.query,
+            source: data.source || 'DuckDuckGo',
+            snippets: data.snippets || [],
+            summary: data.summary,
+            timestamp: Date.now(),
+          };
+          activeSearchRef.current = rec;
+          setSearchHistory((prev) => [rec, ...prev]);
+          setCurrentSearch(null);
+          break;
+        }
 
         case 'memories_retrieved':
           if (data.memories) {
@@ -212,6 +308,7 @@ export const App: React.FC = () => {
                 { ...last, text: last.text + data.delta },
               ];
             } else {
+              const rec = activeSearchRef.current;
               return [
                 ...prev,
                 {
@@ -220,6 +317,7 @@ export const App: React.FC = () => {
                   text: data.delta,
                   timestamp: Date.now(),
                   isStreaming: true,
+                  searchRecord: rec || undefined,
                 },
               ];
             }
@@ -228,6 +326,8 @@ export const App: React.FC = () => {
 
         case 'llm_completed':
           setInteractionStatus('idle');
+          activeSearchRef.current = null;
+          setCurrentSearch(null);
           setMessages((prev) => {
             const last = prev[prev.length - 1];
             if (last && last.sender === 'character') {
@@ -238,6 +338,14 @@ export const App: React.FC = () => {
             }
             return prev;
           });
+          break;
+
+        case 'audio_ready':
+          if (data.audio_url) {
+            audioPlayer.playUrl(data.audio_url);
+          } else if (data.text) {
+            audioPlayer.speak(data.text);
+          }
           break;
 
         case 'state_updated':
@@ -257,10 +365,14 @@ export const App: React.FC = () => {
           break;
 
         case 'reset_completed':
+          audioPlayer.stop();
           setMessages([]);
           setInteractionStatus('idle');
           setDecisionTrace(null);
           setContextBreakdown(null);
+          setSearchHistory([]);
+          setCurrentSearch(null);
+          activeSearchRef.current = null;
           setEmotion({
             joy: 0.30,
             sadness: 0.05,
@@ -295,21 +407,35 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  // Hotkey listener (~ for Inspector, Esc for modals)
+  // Hotkey listener (~ for Inspector, Ctrl+H for History, Esc for modals)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '`' || e.key === '~') {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'h') {
+        e.preventDefault();
+        setIsHistoryOpen((prev) => !prev);
+      } else if (e.key === '`' || e.key === '~') {
         e.preventDefault();
         setIsInspectorOpen((prev) => !prev);
       } else if (e.key === 'Escape') {
         setIsInspectorOpen(false);
         setIsStudioOpen(false);
+        setIsHistoryOpen(false);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  const handleClearHistory = async () => {
+    try {
+      await fetch('http://127.0.0.1:3000/api/history/clear', { method: 'POST' });
+      setSearchHistory([]);
+      setMessages([]);
+    } catch (e) {
+      console.warn('Could not clear history on backend:', e);
+    }
+  };
 
   const handleSendMessage = (text: string) => {
     if (!text.trim() || interactionStatus !== 'idle') return;
@@ -363,6 +489,28 @@ export const App: React.FC = () => {
         characterName={characterName}
         isInspectorOpen={isInspectorOpen}
         onToggleInspector={() => setIsInspectorOpen((prev) => !prev)}
+        isHistoryOpen={isHistoryOpen}
+        onToggleHistory={() => setIsHistoryOpen((prev) => !prev)}
+        isVoiceMuted={isVoiceMuted}
+        onToggleVoice={() => {
+          const next = !isVoiceMuted;
+          audioPlayer.setMuted(next);
+          setIsVoiceMuted(next);
+        }}
+        onTestVoice={async () => {
+          if (isTestVoiceLoading || isAudioPlaying) return;
+          setIsTestVoiceLoading(true);
+          try {
+            await audioPlayer.unlockAudioContext();
+            await audioPlayer.speak('Ara ara~ Chào cưng nhé! Cáo tỷ tỷ Yae Miko đây. Hôm nay muốn tỷ tỷ cưng chiều điều gì nào?');
+          } catch (e) {
+            console.warn('Test voice error:', e);
+          } finally {
+            setIsTestVoiceLoading(false);
+          }
+        }}
+        isAudioPlaying={isAudioPlaying}
+        isAudioLoading={isTestVoiceLoading}
         onOpenStudio={() => setIsStudioOpen(true)}
         onReset={handleReset}
       />
@@ -389,12 +537,27 @@ export const App: React.FC = () => {
             overflowY: 'auto',
           }}
         >
-          <EmotionStage
-            emotion={emotion}
-            relationship={relationship}
-            interactionStatus={interactionStatus}
-            characterName={characterName}
-          />
+          {stageMode === 'vrm' ? (
+            <VrmAvatarStage
+              emotion={emotion}
+              relationship={relationship}
+              interactionStatus={interactionStatus}
+              characterName={characterName}
+              isAudioPlaying={isAudioPlaying}
+              audioAmplitude={audioAmplitude}
+              onSwitchToOrb={() => setStageMode('orb')}
+            />
+          ) : (
+            <EmotionStage
+              emotion={emotion}
+              relationship={relationship}
+              interactionStatus={interactionStatus}
+              characterName={characterName}
+              isAudioPlaying={isAudioPlaying}
+              audioAmplitude={audioAmplitude}
+              onSwitchToVrm={() => setStageMode('vrm')}
+            />
+          )}
 
           <RelationshipHUD relationship={relationship} />
         </section>
@@ -414,6 +577,11 @@ export const App: React.FC = () => {
               messages={messages}
               characterName={characterName}
               onSelectTopic={handleSendMessage}
+              onPlayMessage={(text) => {
+                audioPlayer.unlockAudioContext();
+                audioPlayer.speak(text);
+              }}
+              currentSearch={currentSearch}
             />
           </div>
 
@@ -431,6 +599,7 @@ export const App: React.FC = () => {
           decisionTrace={decisionTrace}
           contextBreakdown={contextBreakdown}
           memories={memories}
+          searchHistory={searchHistory}
         />
       </main>
 
@@ -440,6 +609,17 @@ export const App: React.FC = () => {
         onClose={() => setIsStudioOpen(false)}
         personality={personality}
         onSave={handleSavePersonality}
+      />
+
+      {/* Chrome-Style History Center Modal */}
+      <HistoryModal
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        searches={searchHistory}
+        memories={memories}
+        messages={messages}
+        onSelectTopic={handleSendMessage}
+        onClearHistory={handleClearHistory}
       />
     </div>
   );

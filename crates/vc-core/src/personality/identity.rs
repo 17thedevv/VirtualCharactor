@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::error::{CoreError, Result};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Identity {
@@ -29,10 +29,14 @@ impl Identity {
 
     pub fn validate(&self) -> Result<()> {
         if self.name.trim().is_empty() {
-            return Err(CoreError::ValidationError("Identity name cannot be empty".into()));
+            return Err(CoreError::ValidationError(
+                "Identity name cannot be empty".into(),
+            ));
         }
         if self.core_identity.trim().is_empty() {
-            return Err(CoreError::ValidationError("Identity core_identity cannot be empty".into()));
+            return Err(CoreError::ValidationError(
+                "Identity core_identity cannot be empty".into(),
+            ));
         }
         Ok(())
     }

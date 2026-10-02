@@ -79,7 +79,11 @@ pub struct Action {
 }
 
 impl Action {
-    pub fn new(action_type: ActionType, payload: impl Into<String>, description: impl Into<String>) -> Self {
+    pub fn new(
+        action_type: ActionType,
+        payload: impl Into<String>,
+        description: impl Into<String>,
+    ) -> Self {
         Self {
             action_type,
             payload: payload.into(),

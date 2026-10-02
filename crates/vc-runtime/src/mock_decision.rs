@@ -1,7 +1,7 @@
+use uuid::Uuid;
 use vc_core::decision::action::{Action, ActionType};
 use vc_core::decision::context::DecisionContext;
 use vc_core::decision::{Decision, DecisionEngine, DecisionId, DecisionResult};
-use uuid::Uuid;
 
 /// A deterministic mock decision engine for testing and development.
 pub struct MockDecisionEngine;
@@ -35,7 +35,10 @@ mod tests {
         let ctx = DecisionContext::new("hello", None, personality, state, None, vec![]);
 
         let decision = engine.make_decision(&ctx).unwrap();
-        assert_eq!(decision.result.selected_action.action_type, ActionType::WarmGreeting);
+        assert_eq!(
+            decision.result.selected_action.action_type,
+            ActionType::WarmGreeting
+        );
         assert_eq!(decision.result.reasoning, "deterministic mock");
     }
 }

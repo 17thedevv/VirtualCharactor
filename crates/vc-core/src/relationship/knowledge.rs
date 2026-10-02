@@ -23,19 +23,27 @@ impl RelationshipKnowledge {
     /// Add a new learned fact if not already recorded.
     pub fn add_fact(&mut self, fact: impl Into<String>) {
         let f = fact.into().trim().to_string();
-        if !f.is_empty() && !self.known_facts.iter().any(|existing| existing.eq_ignore_ascii_case(&f)) {
+        if !f.is_empty()
+            && !self
+                .known_facts
+                .iter()
+                .any(|existing| existing.eq_ignore_ascii_case(&f))
+        {
             self.known_facts.push(f);
         }
     }
 
     /// Remove a known fact matching the given predicate.
     pub fn remove_fact(&mut self, query: &str) {
-        self.known_facts.retain(|f| !f.eq_ignore_ascii_case(query.trim()));
+        self.known_facts
+            .retain(|f| !f.eq_ignore_ascii_case(query.trim()));
     }
 
     /// Check if a fact exists.
     pub fn has_fact(&self, query: &str) -> bool {
-        self.known_facts.iter().any(|f| f.eq_ignore_ascii_case(query.trim()))
+        self.known_facts
+            .iter()
+            .any(|f| f.eq_ignore_ascii_case(query.trim()))
     }
 
     /// Return reference to all facts.

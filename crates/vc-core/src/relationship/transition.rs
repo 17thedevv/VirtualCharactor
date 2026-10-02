@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use super::metrics::RelationshipMetrics;
+use serde::{Deserialize, Serialize};
 
 /// Delta changes to be applied to a Character ↔ Actor relationship.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

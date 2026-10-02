@@ -143,6 +143,14 @@ export interface ContextBreakdownData {
   };
 }
 
+export interface WebSearchRecord {
+  query: string;
+  source: string;
+  snippets: string[];
+  summary?: string;
+  timestamp: number;
+}
+
 export interface ChatMessage {
   id: string;
   sender: 'user' | 'character';
@@ -151,4 +159,25 @@ export interface ChatMessage {
   isStreaming?: boolean;
   decisionTrace?: DecisionTraceData;
   contextBreakdown?: ContextBreakdownData;
+  searchRecord?: WebSearchRecord;
 }
+
+export interface PersistentSearchRecord {
+  id: string;
+  character_id: string;
+  query: string;
+  source: string;
+  snippets: string[];
+  summary?: string;
+  created_at: number;
+}
+
+export interface PersistentDialogueRecord {
+  id: string;
+  character_id: string;
+  actor_id: string;
+  sender: 'user' | 'character';
+  text: string;
+  created_at: number;
+}
+

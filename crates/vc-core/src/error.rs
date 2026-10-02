@@ -12,6 +12,8 @@ pub enum CoreError {
     ProviderError(String),
     #[error("Validation error: {0}")]
     ValidationError(String),
+    #[error("Storage error: {0}")]
+    StorageError(String),
     #[error("Internal error: {0}")]
     Internal(String),
 }

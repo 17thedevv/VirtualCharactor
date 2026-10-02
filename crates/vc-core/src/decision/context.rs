@@ -1,8 +1,8 @@
-use serde::{Deserialize, Serialize};
 use crate::memory::Memory;
 use crate::personality::Personality;
 use crate::relationship::Relationship;
 use crate::state::CharacterState;
+use serde::{Deserialize, Serialize};
 
 /// Input context delivered to the Decision Engine to deliberate on the character's next action.
 #[derive(Debug, Clone, Serialize, Deserialize)]

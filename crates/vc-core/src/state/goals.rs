@@ -32,7 +32,9 @@ pub struct Goals {
 
 impl Goals {
     pub fn new(goals: Vec<Goal>) -> Self {
-        Self { active_goals: goals }
+        Self {
+            active_goals: goals,
+        }
     }
 
     pub fn empty() -> Self {

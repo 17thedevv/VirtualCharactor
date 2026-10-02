@@ -30,9 +30,10 @@ impl InMemoryMemoryStore {
 
     /// Add a new memory to the store.
     pub fn add(&self, memory: Memory) -> Result<()> {
-        let mut store = self.memories.write().map_err(|e| {
-            CoreError::Internal(format!("RwLock poisoned: {}", e))
-        })?;
+        let mut store = self
+            .memories
+            .write()
+            .map_err(|e| CoreError::Internal(format!("RwLock poisoned: {}", e)))?;
         store.push(memory);
         Ok(())
     }
@@ -48,7 +49,11 @@ impl InMemoryMemoryStore {
     }
 
     /// Synchronous retrieval implementation against a slice of memories.
-    pub fn retrieve_from_slice(memories: &mut [Memory], query: &MemoryQuery, now: u64) -> Vec<Memory> {
+    pub fn retrieve_from_slice(
+        memories: &mut [Memory],
+        query: &MemoryQuery,
+        now: u64,
+    ) -> Vec<Memory> {
         let mut scored: Vec<(f32, usize)> = Vec::new();
 
         for (idx, mem) in memories.iter().enumerate() {
@@ -73,7 +78,7 @@ impl InMemoryMemoryStore {
             }
 
             // 4. Keyword / Semantic match score [0.0, 1.0]
-            let sim_score = match &query.query_text {
+            let (sim_score, has_text_filter) = match &query.query_text {
                 Some(text) if !text.trim().is_empty() => {
                     let query_tokens: Vec<&str> = text.split_whitespace().collect();
                     let content_lower = mem.content.to_lowercase();
@@ -87,13 +92,18 @@ impl InMemoryMemoryStore {
                         }
                     }
                     if query_tokens.is_empty() {
-                        0.5
+                        (0.5, false)
                     } else {
-                        (matched as f32) / (query_tokens.len() as f32)
+                        ((matched as f32) / (query_tokens.len() as f32), true)
                     }
                 }
-                _ => 0.5, // Neutral baseline when no text filter is provided
+                _ => (0.5, false), // Neutral baseline when no text filter is provided
             };
+
+            // If a specific query was provided, skip non-pinned memories with zero keyword relevance
+            if !mem.lifecycle.is_pinned && has_text_filter && sim_score == 0.0 {
+                continue;
+            }
 
             // 5. Recency score [0.0, 1.0]
             let age_secs = now.saturating_sub(mem.metadata.timestamp);
@@ -113,7 +123,8 @@ impl InMemoryMemoryStore {
 
         // Take top items limited by query budget constraint
         let limit = query.limit.max(1);
-        let selected_indices: Vec<usize> = scored.into_iter().take(limit).map(|(_, idx)| idx).collect();
+        let selected_indices: Vec<usize> =
+            scored.into_iter().take(limit).map(|(_, idx)| idx).collect();
 
         let mut results = Vec::with_capacity(selected_indices.len());
         for idx in selected_indices {
@@ -134,9 +145,10 @@ impl Default for InMemoryMemoryStore {
 
 impl MemoryRetriever for InMemoryMemoryStore {
     fn retrieve(&self, query: &MemoryQuery) -> Result<Vec<Memory>> {
-        let mut store = self.memories.write().map_err(|e| {
-            CoreError::Internal(format!("RwLock poisoned: {}", e))
-        })?;
+        let mut store = self
+            .memories
+            .write()
+            .map_err(|e| CoreError::Internal(format!("RwLock poisoned: {}", e)))?;
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
@@ -144,7 +156,6 @@ impl MemoryRetriever for InMemoryMemoryStore {
         Ok(Self::retrieve_from_slice(&mut store, query, now))
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -156,8 +167,18 @@ mod tests {
         let now = 10000;
         let mut memories = vec![
             Memory::new_core("VirtualCharacter core awakened in Rust", now - 5000),
-            Memory::new_episodic("Alice shared her dream project about compilers", MemoryImportance::High, Some("alice".into()), now - 1000),
-            Memory::new_episodic("Bob enjoys hiking in the mountains", MemoryImportance::Medium, Some("bob".into()), now - 2000),
+            Memory::new_episodic(
+                "Alice shared her dream project about compilers",
+                MemoryImportance::High,
+                Some("alice".into()),
+                now - 1000,
+            ),
+            Memory::new_episodic(
+                "Bob enjoys hiking in the mountains",
+                MemoryImportance::Medium,
+                Some("bob".into()),
+                now - 2000,
+            ),
         ];
 
         // Query by Alice: Should get Core + Alice memory, NEVER Bob memory
@@ -165,16 +186,15 @@ mod tests {
             .with_actor("alice")
             .with_text("compiler");
 
-        let results_alice = InMemoryMemoryStore::retrieve_from_slice(&mut memories, &query_alice, now);
+        let results_alice =
+            InMemoryMemoryStore::retrieve_from_slice(&mut memories, &query_alice, now);
         assert_eq!(results_alice.len(), 2);
         assert!(results_alice.iter().any(|m| m.content.contains("Alice")));
         assert!(results_alice.iter().any(|m| m.content.contains("core")));
         assert!(!results_alice.iter().any(|m| m.content.contains("Bob")));
 
         // Query by Bob: Should NEVER see Alice's compiler memory
-        let query_bob = MemoryQuery::new(5)
-            .with_actor("bob")
-            .with_text("compiler");
+        let query_bob = MemoryQuery::new(5).with_actor("bob").with_text("compiler");
 
         let results_bob = InMemoryMemoryStore::retrieve_from_slice(&mut memories, &query_bob, now);
         assert!(!results_bob.iter().any(|m| m.content.contains("Alice")));
@@ -184,9 +204,24 @@ mod tests {
     fn test_importance_and_budget_limiting() {
         let now = 10000;
         let mut memories = vec![
-            Memory::new_episodic("Low priority chat detail 1", MemoryImportance::Low, Some("alice".into()), now),
-            Memory::new_episodic("Critical life revelation", MemoryImportance::Critical, Some("alice".into()), now),
-            Memory::new_episodic("Low priority chat detail 2", MemoryImportance::Low, Some("alice".into()), now),
+            Memory::new_episodic(
+                "Low priority chat detail 1",
+                MemoryImportance::Low,
+                Some("alice".into()),
+                now,
+            ),
+            Memory::new_episodic(
+                "Critical life revelation",
+                MemoryImportance::Critical,
+                Some("alice".into()),
+                now,
+            ),
+            Memory::new_episodic(
+                "Low priority chat detail 2",
+                MemoryImportance::Low,
+                Some("alice".into()),
+                now,
+            ),
         ];
 
         let query = MemoryQuery::new(1) // strict limit 1

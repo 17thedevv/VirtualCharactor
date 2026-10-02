@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
 use crate::error::{CoreError, Result};
 use crate::personality::behavior::TendencyLevel;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CommunicationStyle {

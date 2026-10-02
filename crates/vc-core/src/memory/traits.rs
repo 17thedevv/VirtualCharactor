@@ -1,6 +1,6 @@
-use crate::error::Result;
 use super::query::{MemoryQuery, MemoryReference};
 use super::Memory;
+use crate::error::Result;
 
 /// Core interface for retrieving memories according to situational relevance and security constraints.
 pub trait MemoryRetriever: Send + Sync {

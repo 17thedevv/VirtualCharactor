@@ -1,6 +1,6 @@
+use super::types::MemoryType;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use super::types::MemoryType;
 
 /// Unique identifier for a single Memory instance.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

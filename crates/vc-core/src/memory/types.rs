@@ -92,9 +92,15 @@ mod tests {
         assert_eq!(MemoryImportance::Low.weight(), 0.25);
         assert_eq!(MemoryImportance::Critical.weight(), 1.00);
 
-        assert_eq!(MemoryImportance::from_weight(0.95), MemoryImportance::Critical);
+        assert_eq!(
+            MemoryImportance::from_weight(0.95),
+            MemoryImportance::Critical
+        );
         assert_eq!(MemoryImportance::from_weight(0.70), MemoryImportance::High);
-        assert_eq!(MemoryImportance::from_weight(0.50), MemoryImportance::Medium);
+        assert_eq!(
+            MemoryImportance::from_weight(0.50),
+            MemoryImportance::Medium
+        );
         assert_eq!(MemoryImportance::from_weight(0.20), MemoryImportance::Low);
     }
 }

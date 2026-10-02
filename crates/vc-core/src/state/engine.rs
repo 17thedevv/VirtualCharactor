@@ -1,6 +1,6 @@
-use crate::personality::Personality;
 use super::emotion::EmotionState;
 use super::transition::EmotionDelta;
+use crate::personality::Personality;
 
 /// Domain trait for computing emotion transitions.
 ///

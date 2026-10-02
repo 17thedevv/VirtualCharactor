@@ -5,6 +5,7 @@ pub mod engine;
 pub mod goals;
 pub mod session;
 pub mod transition;
+pub mod world;
 
 pub use behavior::BehaviorState;
 pub use cognitive::CognitiveState;
@@ -13,6 +14,7 @@ pub use engine::EmotionEngine;
 pub use goals::{Goal, Goals};
 pub use session::SessionState;
 pub use transition::{EmotionDelta, StateTransition, TransitionTrigger};
+pub use world::{ActivityType, AmbientContext, SoundLevel, TimeOfDay, WindowContext, WorldState};
 
 use crate::personality::Personality;
 use serde::{Deserialize, Serialize};
@@ -80,21 +82,17 @@ impl CharacterState {
 
     /// Update behavioral state based on current emotion and personality.
     pub fn sync_behavior(&mut self, personality: &Personality) {
-        self.behavior.playfulness =
-            EmotionScore::clamped(self.effective_playfulness(personality));
+        self.behavior.playfulness = EmotionScore::clamped(self.effective_playfulness(personality));
         self.behavior.initiative = EmotionScore::clamped(
-            personality.traits.assertiveness.value()
-                + self.emotion.curiosity.value() * 0.15
+            personality.traits.assertiveness.value() + self.emotion.curiosity.value() * 0.15
                 - self.emotion.fear.value() * 0.2,
         );
         self.behavior.verbosity = EmotionScore::clamped(
-            0.5 + self.emotion.joy.value() * 0.2
-                + self.emotion.curiosity.value() * 0.15
+            0.5 + self.emotion.joy.value() * 0.2 + self.emotion.curiosity.value() * 0.15
                 - self.emotion.sadness.value() * 0.25,
         );
         self.behavior.seriousness = EmotionScore::clamped(
-            0.3 + self.emotion.sadness.value() * 0.3
-                + self.emotion.anger.value() * 0.2
+            0.3 + self.emotion.sadness.value() * 0.3 + self.emotion.anger.value() * 0.2
                 - self.emotion.joy.value() * 0.15,
         );
     }

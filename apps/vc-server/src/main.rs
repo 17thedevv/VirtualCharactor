@@ -1,5 +1,7 @@
+mod conversation;
 mod routes;
 mod state;
+mod streaming;
 mod ws;
 
 use axum::{
@@ -37,10 +39,26 @@ async fn main() {
         .route("/health", get(routes::health_check))
         .route("/api/health", get(routes::health_check))
         .route("/api/character", get(routes::get_character))
-        .route("/api/personality", put(routes::update_personality).post(routes::update_personality))
-        .route("/api/character/personality", put(routes::update_personality).post(routes::update_personality))
+        .route(
+            "/api/personality",
+            put(routes::update_personality).post(routes::update_personality),
+        )
+        .route(
+            "/api/character/personality",
+            put(routes::update_personality).post(routes::update_personality),
+        )
         .route("/api/character/memories", get(routes::get_memories))
         .route("/api/character/reset", post(routes::reset_character))
+        .route("/api/history/searches", get(routes::get_search_history))
+        .route("/api/history/dialogues", get(routes::get_dialogue_history))
+        .route(
+            "/api/history/clear",
+            post(routes::clear_history).delete(routes::clear_history),
+        )
+        .route(
+            "/api/audio/tts",
+            get(routes::handle_tts_get).post(routes::handle_tts_post),
+        )
         .route("/ws/interaction", get(ws::ws_handler))
         .layer(cors)
         .layer(TraceLayer::new_for_http())
@@ -55,8 +73,14 @@ async fn main() {
     println!("╔══════════════════════════════════════════════════════════════╗");
     println!("║       VirtualCharacter Backend Gateway (vc-server)           ║");
     println!("╠══════════════════════════════════════════════════════════════╣");
-    println!("║  HTTP REST API:    http://127.0.0.1:{:<25} ║", format!("{}/api/character", port));
-    println!("║  WebSocket Stream: ws://127.0.0.1:{:<27} ║", format!("{}/ws/interaction", port));
+    println!(
+        "║  HTTP REST API:    http://127.0.0.1:{:<25} ║",
+        format!("{}/api/character", port)
+    );
+    println!(
+        "║  WebSocket Stream: ws://127.0.0.1:{:<27} ║",
+        format!("{}/ws/interaction", port)
+    );
     println!("╚══════════════════════════════════════════════════════════════╝");
 
     let listener = tokio::net::TcpListener::bind(addr)

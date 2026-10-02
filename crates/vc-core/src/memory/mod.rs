@@ -76,7 +76,8 @@ impl Memory {
 
     /// Helper constructor for creating a core identity autobiographical memory (pinned & critical).
     pub fn new_core(content: impl Into<String>, now: u64) -> Self {
-        let metadata = MemoryMetadata::new(MemoryType::Semantic, MemoryImportance::Critical, None, now);
+        let metadata =
+            MemoryMetadata::new(MemoryType::Semantic, MemoryImportance::Critical, None, now);
         let lifecycle = MemoryLifecycle::new(now, true);
         Self::new(MemoryId::new(), None, content, metadata, lifecycle)
     }
@@ -94,7 +95,8 @@ impl Memory {
 
     /// Calculate effective dynamic importance modulated by retention strength.
     pub fn effective_importance(&self) -> f32 {
-        self.lifecycle.effective_importance(&self.metadata.importance)
+        self.lifecycle
+            .effective_importance(&self.metadata.importance)
     }
 
     /// Security Rule (Skill 12): Verify if an actor is authorized to retrieve this memory.
@@ -114,10 +116,14 @@ impl Memory {
     /// Validate domain invariants of this memory item.
     pub fn validate(&self) -> Result<()> {
         if self.content.trim().is_empty() {
-            return Err(CoreError::ValidationError("Memory content cannot be empty".into()));
+            return Err(CoreError::ValidationError(
+                "Memory content cannot be empty".into(),
+            ));
         }
         if self.metadata.emotional_valence < -1.0 || self.metadata.emotional_valence > 1.0 {
-            return Err(CoreError::ValidationError("Emotional valence must be in [-1.0, 1.0]".into()));
+            return Err(CoreError::ValidationError(
+                "Emotional valence must be in [-1.0, 1.0]".into(),
+            ));
         }
         Ok(())
     }
@@ -129,7 +135,12 @@ mod tests {
 
     #[test]
     fn test_memory_creation_and_validation() {
-        let mem = Memory::new_episodic("User fixed compiler bug", MemoryImportance::High, Some("user-1".into()), 1000);
+        let mem = Memory::new_episodic(
+            "User fixed compiler bug",
+            MemoryImportance::High,
+            Some("user-1".into()),
+            1000,
+        );
         assert_eq!(mem.metadata.memory_type, MemoryType::Episodic);
         assert_eq!(mem.metadata.importance, MemoryImportance::High);
         assert!(mem.validate().is_ok());
@@ -141,8 +152,18 @@ mod tests {
     #[test]
     fn test_strict_actor_isolation() {
         let shared_mem = Memory::new_core("Awakened in Rust runtime", 1000);
-        let alice_mem = Memory::new_episodic("Alice shared her secret goal", MemoryImportance::High, Some("alice".into()), 1000);
-        let bob_mem = Memory::new_episodic("Bob discussed music", MemoryImportance::Medium, Some("bob".into()), 1000);
+        let alice_mem = Memory::new_episodic(
+            "Alice shared her secret goal",
+            MemoryImportance::High,
+            Some("alice".into()),
+            1000,
+        );
+        let bob_mem = Memory::new_episodic(
+            "Bob discussed music",
+            MemoryImportance::Medium,
+            Some("bob".into()),
+            1000,
+        );
 
         // Shared memory is accessible to everyone
         assert!(shared_mem.can_be_retrieved_by(Some("alice")));
@@ -181,13 +202,21 @@ mod tests {
 
     #[test]
     fn test_serialization_roundtrip() {
-        let mem = Memory::new_semantic("Loves clean software architecture", MemoryImportance::Critical, Some("dev-1".into()), 5000);
+        let mem = Memory::new_semantic(
+            "Loves clean software architecture",
+            MemoryImportance::Critical,
+            Some("dev-1".into()),
+            5000,
+        );
         let json = serde_json::to_string(&mem).expect("Serialization failed");
         let deserialized: Memory = serde_json::from_str(&json).expect("Deserialization failed");
 
         assert_eq!(mem.id, deserialized.id);
         assert_eq!(mem.content, deserialized.content);
         assert_eq!(mem.metadata.importance, deserialized.metadata.importance);
-        assert_eq!(mem.metadata.source_actor_id, deserialized.metadata.source_actor_id);
+        assert_eq!(
+            mem.metadata.source_actor_id,
+            deserialized.metadata.source_actor_id
+        );
     }
 }

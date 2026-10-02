@@ -76,8 +76,7 @@ fn test_end_to_end_mock_flow() {
     // 4. LLM phase: decision → LLM request → LLM response
     let request = LlmRequest::new(format!(
         "Action: {}\nPayload: {}",
-        decision.result.selected_action.action_type,
-        decision.result.selected_action.payload
+        decision.result.selected_action.action_type, decision.result.selected_action.payload
     ))
     .with_system_instruction("You are a persistent AI character.");
 
@@ -150,7 +149,9 @@ fn test_decision_is_not_generation() {
     // LLM generation answers "how should it be expressed?"
     let llm = MockLlmProvider::new("expressed output");
     let response = llm
-        .generate_text(LlmRequest::new(decision.result.selected_action.description.clone()))
+        .generate_text(LlmRequest::new(
+            decision.result.selected_action.description.clone(),
+        ))
         .unwrap();
 
     // These are separate concerns
@@ -181,7 +182,11 @@ fn test_rule_decision_engine_rich_scenarios() {
         decision_distress.result.selected_action.action_type,
         ActionType::EmotionalResonance
     );
-    assert!(decision_distress.result.reasoning.to_lowercase().contains("thấu cảm"));
+    assert!(decision_distress
+        .result
+        .reasoning
+        .to_lowercase()
+        .contains("thấu cảm"));
     assert!(decision_distress.result.policy.is_some());
 
     // 2. Accomplishment -> InspireEncourage
@@ -198,7 +203,10 @@ fn test_rule_decision_engine_rich_scenarios() {
         decision_accomplish.result.selected_action.action_type,
         ActionType::InspireEncourage
     );
-    assert!(decision_accomplish.result.reasoning.contains("cột mốc ý nghĩa"));
+    assert!(decision_accomplish
+        .result
+        .reasoning
+        .contains("cột mốc ý nghĩa"));
 
     // 3. Technical question -> ThoughtfulExplanation
     let ctx_tech = DecisionContext::new(
@@ -232,14 +240,20 @@ fn test_emotion_engine_integration() {
     // Apply delta
     let old_sadness = state.emotion.sadness.value();
     state.emotion.apply_delta(&delta);
-    assert!(state.emotion.sadness.value() > old_sadness, "Sadness should have increased");
+    assert!(
+        state.emotion.sadness.value() > old_sadness,
+        "Sadness should have increased"
+    );
 
     // Now simulate a happy message
     let delta2 = engine.evaluate(&state.emotion, "Cảm ơn bạn, mình vui lắm!", &personality);
     assert!(delta2.joy > 0.0, "Joy should increase");
 
     state.emotion.apply_delta(&delta2);
-    assert!(state.emotion.joy.value() > 0.3, "Joy should be above neutral");
+    assert!(
+        state.emotion.joy.value() > 0.3,
+        "Joy should be above neutral"
+    );
 }
 
 #[test]
@@ -289,7 +303,10 @@ fn test_effective_behavior_personality_emotion_interaction() {
 
     // Normal state → playfulness should be close to personality baseline
     let normal_play = state.effective_playfulness(&personality);
-    assert!(normal_play > 0.6, "Normal playfulness should be moderate-high");
+    assert!(
+        normal_play > 0.6,
+        "Normal playfulness should be moderate-high"
+    );
 
     // Sad state → playfulness suppressed
     state.emotion.sadness = EmotionScore::clamped(0.9);
@@ -356,11 +373,34 @@ fn test_memory_system_retrieval_and_actor_isolation() {
 
     let now = 200_000;
     let mut memories = vec![
-        Memory::new_core("Awakened as Aria, empathetic virtual companion", now - 86400),
-        Memory::new_episodic("Alice shared that her favorite compiler is written in Rust", MemoryImportance::High, Some("alice".into()), now - 3600),
-        Memory::new_semantic("Alice prefers strict type safety", MemoryImportance::Critical, Some("alice".into()), now - 7200),
-        Memory::new_episodic("Bob mentioned he is learning Python for data science", MemoryImportance::Medium, Some("bob".into()), now - 1800),
-        Memory::new_episodic("Bob shared his secret password with Aria", MemoryImportance::High, Some("bob".into()), now - 900),
+        Memory::new_core(
+            "Awakened as Aria, empathetic virtual companion",
+            now - 86400,
+        ),
+        Memory::new_episodic(
+            "Alice shared that her favorite compiler is written in Rust",
+            MemoryImportance::High,
+            Some("alice".into()),
+            now - 3600,
+        ),
+        Memory::new_semantic(
+            "Alice prefers strict type safety",
+            MemoryImportance::Critical,
+            Some("alice".into()),
+            now - 7200,
+        ),
+        Memory::new_episodic(
+            "Bob mentioned he is learning Python for data science",
+            MemoryImportance::Medium,
+            Some("bob".into()),
+            now - 1800,
+        ),
+        Memory::new_episodic(
+            "Bob shared his secret password with Aria",
+            MemoryImportance::High,
+            Some("bob".into()),
+            now - 900,
+        ),
     ];
 
     // 1. Alice queries memories about 'Rust' or 'compiler'
@@ -376,9 +416,7 @@ fn test_memory_system_retrieval_and_actor_isolation() {
     assert!(!results_alice.iter().any(|m| m.content.contains("password")));
 
     // 2. Bob queries memories about 'Python'
-    let query_bob = MemoryQuery::new(2)
-        .with_actor("bob")
-        .with_text("Python");
+    let query_bob = MemoryQuery::new(2).with_actor("bob").with_text("Python");
 
     let results_bob = InMemoryMemoryStore::retrieve_from_slice(&mut memories, &query_bob, now);
     assert!(!results_bob.is_empty());
@@ -387,7 +425,10 @@ fn test_memory_system_retrieval_and_actor_isolation() {
     assert!(!results_bob.iter().any(|m| m.content.contains("Alice")));
 
     // 3. Access reinforcement check: Retrieved memories have incremented access_count
-    let alice_accessed = memories.iter().find(|m| m.content.contains("Alice shared")).unwrap();
+    let alice_accessed = memories
+        .iter()
+        .find(|m| m.content.contains("Alice shared"))
+        .unwrap();
     assert!(alice_accessed.lifecycle.access_count >= 1);
 }
 
@@ -399,7 +440,10 @@ fn test_context_builder_and_budget_governance() {
 
     let personality = build_test_personality();
     let state = build_test_state();
-    let rel = Relationship::new_companion(vc_core::character::CharacterId(personality.id.0), "user-devb");
+    let rel = Relationship::new_companion(
+        vc_core::character::CharacterId(personality.id.0),
+        "user-devb",
+    );
     let memories = vec![
         Memory::new_core("Core awakened memory", 1000),
         Memory::new_semantic(
@@ -428,17 +472,30 @@ fn test_context_builder_and_budget_governance() {
         .build(tight_budget);
 
     // Assert Critical items are strictly kept
-    let has_user_input = ctx.items.iter().any(|i| i.source == ContextSource::User && i.priority.is_critical());
+    let has_user_input = ctx
+        .items
+        .iter()
+        .any(|i| i.source == ContextSource::User && i.priority.is_critical());
     assert!(has_user_input, "User input must be preserved as Critical");
 
-    let has_system = ctx.items.iter().any(|i| i.source == ContextSource::System && i.priority.is_critical());
+    let has_system = ctx
+        .items
+        .iter()
+        .any(|i| i.source == ContextSource::System && i.priority.is_critical());
     assert!(has_system, "System directive must be preserved as Critical");
 
     // Assert total tokens respected
-    assert!(ctx.total_tokens <= 150, "Context total tokens ({}) must fit budget (150)", ctx.total_tokens);
+    assert!(
+        ctx.total_tokens <= 150,
+        "Context total tokens ({}) must fit budget (150)",
+        ctx.total_tokens
+    );
 
     // Low priority memory should be pruned
-    assert!(ctx.breakdown.dropped_items_count >= 1, "Low priority items must be pruned when exceeding budget");
+    assert!(
+        ctx.breakdown.dropped_items_count >= 1,
+        "Low priority items must be pruned when exceeding budget"
+    );
 
     // Prompt render works
     let rendered = ctx.render_for_llm();
@@ -454,19 +511,19 @@ fn test_runtime_orchestrator_complete_lifecycle() {
     use vc_runtime::runtime::RuntimeEngine;
 
     // 1. Setup RuntimeEngine with MockLlmProvider
-    let llm = Arc::new(MockLlmProvider::new(
-        "Aria responds with warmth and joy.",
-    ));
+    let llm = Arc::new(MockLlmProvider::new("Aria responds with warmth and joy."));
     let runtime = RuntimeEngine::new(llm);
 
     // 2. Setup domain entities
     let char_id = CharacterId::new();
     let personality = build_test_personality();
     let mut state = build_test_state();
-    let mut relationship = vc_core::relationship::Relationship::new_companion(char_id, "user-orchestrator");
-    let mut memories = vec![
-        vc_core::memory::Memory::new_core("Core awakened memory", 1000),
-    ];
+    let mut relationship =
+        vc_core::relationship::Relationship::new_companion(char_id, "user-orchestrator");
+    let mut memories = vec![vc_core::memory::Memory::new_core(
+        "Core awakened memory",
+        1000,
+    )];
 
     let initial_interaction_count = relationship.interaction_count;
     let initial_memory_count = memories.len();
@@ -488,14 +545,23 @@ fn test_runtime_orchestrator_complete_lifecycle() {
 
     // 4. Verify Outcome
     assert_eq!(outcome.response_text, "Aria responds with warmth and joy.");
-    assert_eq!(outcome.decision.result.selected_action.action_type, ActionType::EmotionalResonance);
+    assert_eq!(
+        outcome.decision.result.selected_action.action_type,
+        ActionType::EmotionalResonance
+    );
     assert!(outcome.context_breakdown.total_used > 50);
 
     // 5. Verify State Feedback Loop
-    assert!(state.emotion.joy.value() > initial_joy, "Joy should increase after cheerful message");
+    assert!(
+        state.emotion.joy.value() > initial_joy,
+        "Joy should increase after cheerful message"
+    );
 
     // 6. Verify Relationship Evolution
-    assert_eq!(relationship.interaction_count, initial_interaction_count + 1);
+    assert_eq!(
+        relationship.interaction_count,
+        initial_interaction_count + 1
+    );
     assert_eq!(relationship.last_interaction_ts, 1200);
 
     // 7. Verify Memory Formation
@@ -504,7 +570,9 @@ fn test_runtime_orchestrator_complete_lifecycle() {
 
     // 8. Verify Session Tracking
     let session_mgr = runtime.session_manager.read().unwrap();
-    let session = session_mgr.get_session(char_id, "user-orchestrator").expect("Session must exist");
+    let session = session_mgr
+        .get_session(char_id, "user-orchestrator")
+        .expect("Session must exist");
     assert_eq!(session.interaction_count, 1);
     assert!(session.is_active());
 }
@@ -530,7 +598,10 @@ fn test_session_lifecycle_and_timeout() {
     // 3. Completing session
     manager.complete_session(char_id, "user-timeout");
     let session = manager.get_session(char_id, "user-timeout").unwrap();
-    assert_eq!(session.status, vc_runtime::session::SessionStatus::Completed);
+    assert_eq!(
+        session.status,
+        vc_runtime::session::SessionStatus::Completed
+    );
     assert!(!session.is_active());
 }
 
@@ -648,7 +719,10 @@ fn test_mock_llm_error_simulation_and_runtime_resilience() {
         )
         .expect("Should succeed after recovery");
 
-    assert_eq!(outcome.response_text, "I have recovered and am back online!");
+    assert_eq!(
+        outcome.response_text,
+        "I have recovered and am back online!"
+    );
 }
 
 #[test]
@@ -672,8 +746,12 @@ fn test_gemini_config_and_secrets_redaction() {
 
     // Verify Secrets Redaction under Skill 20
     let debug_output = format!("{:?}", provider);
-    assert!(!debug_output.contains(secret_key), "Secret key must NOT leak into debug output!");
-    assert!(debug_output.contains("[REDACTED]"), "Debug output must show [REDACTED]");
+    assert!(
+        !debug_output.contains(secret_key),
+        "Secret key must NOT leak into debug output!"
+    );
+    assert!(
+        debug_output.contains("[REDACTED]"),
+        "Debug output must show [REDACTED]"
+    );
 }
-
-

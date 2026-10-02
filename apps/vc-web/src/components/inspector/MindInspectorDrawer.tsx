@@ -4,8 +4,9 @@ import type {
   DecisionTraceData,
   ContextBreakdownData,
   MemoryItem,
+  WebSearchRecord,
 } from '../../types/character';
-import { Brain, X, GitCommit, Database, Layers, Activity } from 'lucide-react';
+import { Brain, X, GitCommit, Database, Layers, Activity, Globe } from 'lucide-react';
 
 interface MindInspectorDrawerProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface MindInspectorDrawerProps {
   decisionTrace: DecisionTraceData | null;
   contextBreakdown: ContextBreakdownData | null;
   memories: MemoryItem[];
+  searchHistory?: WebSearchRecord[];
 }
 
 export const MindInspectorDrawer: React.FC<MindInspectorDrawerProps> = ({
@@ -23,6 +25,7 @@ export const MindInspectorDrawer: React.FC<MindInspectorDrawerProps> = ({
   decisionTrace,
   contextBreakdown,
   memories,
+  searchHistory = [],
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -541,7 +544,71 @@ export const MindInspectorDrawer: React.FC<MindInspectorDrawerProps> = ({
             ))}
           </div>
         </div>
+
+        {/* Section 5: Real-time Web Search History */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <Globe size={15} color="var(--accent-cyan)" />
+            <span style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+              Lịch Sử Tra Cứu Web ({searchHistory.length})
+            </span>
+          </div>
+
+          <div className="glass-card" style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {searchHistory.length === 0 ? (
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.5, textAlign: 'center', padding: '12px 6px' }}>
+                Chưa có lượt tra cứu web nào trong phiên này.<br />
+                <span style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)' }}>
+                  Gợi ý: Thử hỏi "em có biết MCK k", "thời tiết Hà Nội", hoặc "search Sơn Tùng"...
+                </span>
+              </div>
+            ) : (
+              searchHistory.map((item, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'rgba(0, 0, 0, 0.25)',
+                    border: '1px solid rgba(0, 242, 254, 0.18)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--accent-cyan)' }}>
+                      🔍 "{item.query}"
+                    </span>
+                    <span style={{ fontSize: '0.68rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(0, 242, 254, 0.12)', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
+                      {item.source}
+                    </span>
+                  </div>
+                  {item.snippets && item.snippets.map((snip, sIdx) => (
+                    <div
+                      key={sIdx}
+                      style={{
+                        fontSize: '0.72rem',
+                        color: 'var(--text-secondary)',
+                        lineHeight: 1.45,
+                        borderLeft: '2px solid rgba(0, 242, 254, 0.35)',
+                        paddingLeft: '8px',
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      "{snip}"
+                    </div>
+                  ))}
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textAlign: 'right', marginTop: '2px' }}>
+                    {new Date(item.timestamp).toLocaleTimeString()}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
     </aside>
   );
 };
+

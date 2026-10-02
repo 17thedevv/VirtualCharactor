@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 use crate::error::{CoreError, Result};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct TraitScore(f32);
@@ -87,7 +87,9 @@ impl Traits {
         self.patience.validate()?;
         for (k, v) in &self.custom {
             if k.trim().is_empty() {
-                return Err(CoreError::ValidationError("Custom trait name cannot be empty".into()));
+                return Err(CoreError::ValidationError(
+                    "Custom trait name cannot be empty".into(),
+                ));
             }
             v.validate()?;
         }

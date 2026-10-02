@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use super::metrics::RelationshipMetrics;
+use serde::{Deserialize, Serialize};
 
 /// Developmental stages of a Character ↔ Actor relationship.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -89,24 +89,39 @@ mod tests {
     #[test]
     fn test_stage_from_metrics() {
         let mut m = RelationshipMetrics::stranger();
-        assert_eq!(RelationshipStage::from_metrics(&m), RelationshipStage::Stranger);
+        assert_eq!(
+            RelationshipStage::from_metrics(&m),
+            RelationshipStage::Stranger
+        );
 
         m.familiarity = RelationshipScore::clamped(0.2);
-        assert_eq!(RelationshipStage::from_metrics(&m), RelationshipStage::Acquaintance);
+        assert_eq!(
+            RelationshipStage::from_metrics(&m),
+            RelationshipStage::Acquaintance
+        );
 
         m.familiarity = RelationshipScore::clamped(0.4);
         m.trust = RelationshipScore::clamped(0.4);
-        assert_eq!(RelationshipStage::from_metrics(&m), RelationshipStage::CasualCompanion);
+        assert_eq!(
+            RelationshipStage::from_metrics(&m),
+            RelationshipStage::CasualCompanion
+        );
 
         m.familiarity = RelationshipScore::clamped(0.6);
         m.closeness = RelationshipScore::clamped(0.6);
         m.trust = RelationshipScore::clamped(0.7);
-        assert_eq!(RelationshipStage::from_metrics(&m), RelationshipStage::CloseFriend);
+        assert_eq!(
+            RelationshipStage::from_metrics(&m),
+            RelationshipStage::CloseFriend
+        );
 
         m.familiarity = RelationshipScore::clamped(0.8);
         m.closeness = RelationshipScore::clamped(0.85);
         m.trust = RelationshipScore::clamped(0.9);
         m.tension = RelationshipScore::clamped(0.1);
-        assert_eq!(RelationshipStage::from_metrics(&m), RelationshipStage::Confidant);
+        assert_eq!(
+            RelationshipStage::from_metrics(&m),
+            RelationshipStage::Confidant
+        );
     }
 }

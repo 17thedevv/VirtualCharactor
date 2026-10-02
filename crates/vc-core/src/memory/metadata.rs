@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use super::types::{MemoryImportance, MemoryType};
+use serde::{Deserialize, Serialize};
 
 /// Rich metadata annotating a single memory item.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -47,7 +47,11 @@ impl MemoryMetadata {
 
     /// Set emotional valence clamped safely between [-1.0, 1.0].
     pub fn with_valence(mut self, valence: f32) -> Self {
-        self.emotional_valence = if valence.is_nan() { 0.0 } else { valence.clamp(-1.0, 1.0) };
+        self.emotional_valence = if valence.is_nan() {
+            0.0
+        } else {
+            valence.clamp(-1.0, 1.0)
+        };
         self
     }
 }

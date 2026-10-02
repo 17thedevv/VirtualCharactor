@@ -206,7 +206,11 @@ impl EmotionState {
         EmotionAxis::ALL
             .iter()
             .map(|&axis| (axis, self.get(axis)))
-            .max_by(|a, b| a.1.value().partial_cmp(&b.1.value()).unwrap_or(std::cmp::Ordering::Equal))
+            .max_by(|a, b| {
+                a.1.value()
+                    .partial_cmp(&b.1.value())
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
             .unwrap_or((EmotionAxis::Joy, EmotionScore::default()))
     }
 

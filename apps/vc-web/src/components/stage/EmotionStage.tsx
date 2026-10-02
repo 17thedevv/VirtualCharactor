@@ -1,12 +1,15 @@
 import React from 'react';
 import type { EmotionData, RelationshipData } from '../../types/character';
-import { Heart, Activity, Compass } from 'lucide-react';
+import { Heart, Activity, Compass, Sparkles } from 'lucide-react';
 
 interface EmotionStageProps {
   emotion: EmotionData;
   relationship: RelationshipData;
   interactionStatus: 'idle' | 'thinking' | 'speaking' | 'listening';
   characterName: string;
+  isAudioPlaying?: boolean;
+  audioAmplitude?: number;
+  onSwitchToVrm?: () => void;
 }
 
 export const EmotionStage: React.FC<EmotionStageProps> = ({
@@ -14,6 +17,9 @@ export const EmotionStage: React.FC<EmotionStageProps> = ({
   relationship,
   interactionStatus,
   characterName,
+  isAudioPlaying,
+  audioAmplitude = 0,
+  onSwitchToVrm,
 }) => {
   // Determine dominant hue based on emotion
   const getEmotionPalette = (name: string) => {
@@ -114,6 +120,34 @@ export const EmotionStage: React.FC<EmotionStageProps> = ({
         userSelect: 'none',
       }}
     >
+      {/* Switch to 3D VRM Avatar Button */}
+      {onSwitchToVrm && (
+        <button
+          onClick={onSwitchToVrm}
+          style={{
+            position: 'absolute',
+            top: '8px',
+            right: '12px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '4px 10px',
+            borderRadius: '20px',
+            background: 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            backdropFilter: 'blur(10px)',
+            fontSize: '11px',
+            color: 'rgba(255, 255, 255, 0.85)',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+          }}
+          title="Chuyển sang chế độ hiển thị 3D VRM Avatar"
+        >
+          <Sparkles size={12} color="#00d2d3" />
+          <span>3D VRM Avatar</span>
+        </button>
+      )}
+
       {/* Dynamic Emotion Core / Orb */}
       <div
         style={{
@@ -178,8 +212,9 @@ export const EmotionStage: React.FC<EmotionStageProps> = ({
             alignItems: 'center',
             justifyContent: 'center',
             position: 'relative',
-            animation: `breathe ${pulseSpeed}s ease-in-out infinite`,
-            transition: 'all var(--transition-emotion)',
+            transform: isAudioPlaying ? `scale(${1 + audioAmplitude * 0.25})` : 'scale(1)',
+            animation: isAudioPlaying ? 'none' : `breathe ${pulseSpeed}s ease-in-out infinite`,
+            transition: 'transform 80ms ease-out, all var(--transition-emotion)',
           }}
         >
           {/* Inner Light Ripple */}
@@ -239,7 +274,7 @@ export const EmotionStage: React.FC<EmotionStageProps> = ({
           border: '1px solid var(--border-subtle)',
           fontSize: '0.8rem',
           color: 'var(--text-secondary)',
-          marginBottom: '10px',
+          marginBottom: '6px',
         }}
       >
         <span
@@ -256,6 +291,40 @@ export const EmotionStage: React.FC<EmotionStageProps> = ({
           ({Math.round(dominantIntensity * 100)}%)
         </span>
       </div>
+
+      {/* Real-time Voice Soundwave Equalizer when Aria is speaking */}
+      {isAudioPlaying && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            height: '18px',
+            marginBottom: '8px',
+            padding: '2px 10px',
+            borderRadius: 'var(--radius-full)',
+            background: 'rgba(0, 0, 0, 0.3)',
+            border: `1px solid ${palette.primary}44`,
+          }}
+        >
+          {[0.5, 0.85, 1.0, 0.7, 0.9, 0.6].map((factor, i) => (
+            <span
+              key={i}
+              style={{
+                width: '3px',
+                height: `${Math.max(4, Math.min(16, (audioAmplitude || 0.4) * factor * 20))}px`,
+                backgroundColor: palette.primary,
+                borderRadius: '2px',
+                transition: 'height 60ms ease-out',
+                boxShadow: `0 0 6px ${palette.primary}`,
+              }}
+            />
+          ))}
+          <span style={{ fontSize: '0.68rem', color: palette.primary, marginLeft: '4px', fontWeight: 600 }}>
+            Đang nói...
+          </span>
+        </div>
+      )}
 
       {/* Activity / Cognitive status */}
       <p

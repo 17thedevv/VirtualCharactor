@@ -5,6 +5,7 @@ pub mod error;
 pub mod event;
 pub mod memory;
 pub mod personality;
+pub mod rag;
 pub mod relationship;
 pub mod state;
 

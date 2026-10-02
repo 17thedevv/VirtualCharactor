@@ -315,7 +315,9 @@ GeminiProvider:
 - Trích xuất `usageMetadata` (`promptTokenCount`, `candidatesTokenCount`, `totalTokenCount`) vào `LlmUsage`.
 - Cơ chế retry tự động cho lỗi tạm thời (429 RateLimit, 503 Service Unavailable) với exponential backoff.
 - Toàn bộ kiểu dữ liệu nội bộ của Gemini được cô lập 100% bên trong `vc-llm::gemini`, tuyệt đối không rò rỉ ra `vc-core` hay `vc-runtime`.
-B4. Storage
+B4. Storage [DONE]
+
+(Đã hoàn tất toàn bộ InMemoryStorage, SqliteStorage Local-First, Schema Auto-Migration, và 4 Repository Traits: CharacterRepository, MemoryRepository, StateRepository, RelationshipRepository).
 
 Phụ trách:
 
@@ -324,53 +326,52 @@ MemoryRepository
 StateRepository
 RelationshipRepository
 
-trước tiên làm:
+Đã triển khai:
 
-InMemory implementation
+1. InMemoryStorage:
+   - Lưu trữ dạng `Arc<RwLock<HashMap<...>>>` phục vụ testing và chạy không cần ổ đĩa.
+   - Hỗ trợ đầy đủ logic truy vấn bộ nhớ đa chiều và cô lập actor (Skill 12).
 
-sau đó:
+2. SqliteStorage:
+   - Lưu trữ bền vững Local-First trên file SQLite (`rusqlite` bundled).
+   - Tự động tạo schema và indexes (`characters`, `relationships`, `memories`).
+   - Serialization JSON an toàn, mapping 1-1 giữa Domain model và Persistence model (Skill 21).
+   - Đảm bảo an toàn luồng và đồng bộ tuần tự ghi bằng internal mutex.
 
-SQLite implementation
+B5. Integration [DONE]
 
-Phase 1 không cần tối ưu database.
+(Đã hoàn tất tích hợp End-to-End toàn diện giữa Storage, Runtime, Server và CLI).
 
-Mục đích là chứng minh:
+Pipeline hoạt động:
 
-Domain
- ↕
-Repository
- ↕
-Storage
+CLI / Web Client
+     ↓
+Runtime Engine (9-Stage Lifecycle)
+     ↓
+Load / Seed Entity (SqliteStorage)
+     ↓
+Actor-Isolated Memory Retrieval
+     ↓
+Context Construction & Budget Governance
+     ↓
+Decision Engine (Candidate Evaluation)
+     ↓
+LLM Generation (Gemini API / Mock)
+     ↓
+State & Emotion Transition
+     ↓
+Relationship Evolution & Damping
+     ↓
+Memory Formation (Episodic Consolidation)
+     ↓
+Commit Updates to SQLite (State, Relationship, Memory)
+     ↓
+Client Response (WebSocket Stream / CLI Display)
 
-hoạt động.
+Đã kiểm thử:
+- Khởi động lại runtime, CLI và server giữ nguyên vẹn 100% cảm xúc, ký ức và mức độ quan hệ.
+- Bộ 114 automated tests của workspace pass sạch sẽ.
 
-B5. Integration
-
-Đây là phần Dev B chịu trách nhiệm chính nhưng hai đứa cùng review.
-
-Tạo pipeline:
-
-CLI
- ↓
-Runtime
- ↓
-Core
- ↓
-Mock DecisionEngine
- ↓
-Mock LLM
- ↓
-Response
-
-rồi nâng lên:
-
-Runtime
- ↓
-Real DecisionEngine
- ↓
-Context
- ↓
-Gemini
 Dev B — Definition of Done
 ✓ Context builder
 ✓ Context budget
@@ -384,186 +385,154 @@ Dev B — Definition of Done
 ✓ SQLite foundation
 ✓ Integration tests
 ✓ CLI chạy end-to-end
-Quan trọng: 2 đứa KHÔNG được đụng nhau ở đâu?
+---
 
-Đây là ownership matrix tao khuyên ghi thẳng vào docs/development.md:
+## Quy Tắc Phân Quyền Sở Hữu (Ownership Matrix)
 
-Area	Dev A	Dev B
-Personality	✅	❌
-State	✅	❌
-Emotion	✅	❌
-Relationship	✅	❌
-Memory domain	✅	❌
-Decision	✅	❌
-Context domain types	⚠️	✅
-Context builder	❌	✅
-Runtime	❌	✅
-LLM	❌	✅
-Gemini	❌	✅
-Storage	❌	✅
-CLI	review	✅
-Integration tests	review	✅
-Architecture/docs	both	
+| Khu vực / Module | Dev A (Character Intelligence) | Dev B (Runtime & Boundaries) | Ghi Chú |
+|---|---|---|---|
+| Personality | ✅ | ❌ | Dev A sở hữu |
+| State & Emotion | ✅ | ❌ | Dev A sở hữu |
+| Relationship Engine | ✅ | ❌ | Dev A sở hữu |
+| Memory Domain Types & Logic | ✅ | ❌ | Dev A sở hữu logic |
+| Decision Engine Trait & Rules | ✅ | ❌ | Dev A sở hữu |
+| Context Builder & Budget | ⚠️ (Review) | ✅ | Dev B sở hữu |
+| Runtime & SessionManager | ⚠️ (Review) | ✅ | Dev B sở hữu |
+| LLM & Ollama Provider | ❌ | ✅ | Dev B sở hữu |
+| Storage & Vector Embeddings | ❌ | ✅ | Dev B sở hữu |
+| Voice & Audio Pipeline | ⚠️ (Emotion modulate) | ✅ (Capture/TTS engine) | Phối hợp |
+| Avatar Controller | ⚠️ (Expression map) | ✅ (WebSocket stream) | Phối hợp |
+| Vision & Screen Sensing | ⚠️ (Attention filter) | ✅ (Win32 capture/OCR) | Phối hợp |
+| Server, CLI, Web HUD | Review | ✅ | Dev B sở hữu |
 
-⚠️ ở Context nghĩa là contract đã có, Dev B sở hữu implementation.
+---
 
-Thứ tự chạy song song
+## BẢNG NHIỆM VỤ CHI TIẾT TỪNG PHASE (Sprint Backlog)
 
-Không phải A làm hết rồi B làm.
+### PHASE 2 — Local AI (Ollama) & Bộ Nhớ Ngữ Nghĩa 2.0 `[ACTIVE SPRINT]`
 
-Ngay sau Phase 0:
+#### Nhiệm vụ của Dev B (Infrastructure & Local AI)
+- [x] **B2.1: Ollama Provider Cài Đặt Hoàn Chỉnh (`vc-llm`) [DONE]**
+  - [x] Tạo `OllamaClient` kết nối tới `http://localhost:11434` qua `/api/chat` làm đường chính.
+  - [x] Cấu hình model mặc định: `qwen2.5:3b` trong `OllamaConfig`, không hardcode rải rác.
+  - [x] Chuyển đổi `LlmRequest` (system instruction + user prompt + options) sang payload Ollama chuẩn.
+  - [x] Map đầy đủ `LlmUsage` (eval_count, prompt_eval_count) và mapping chi tiết lỗi (Connection refused, 404, 400, 500, timeout).
+  - [x] Thêm bộ test `crates/vc-llm/tests/ollama_tests.rs` với mock HTTP server độc lập (9/9 tests passed).
 
-DAY 1
-────────────────────────────
-DEV A
-Personality + State
+- [ ] **B2.2: Model Registry & Model Capabilities (`vc-llm`)**
+  - [ ] Định nghĩa `ModelCapability` enum (`Text`, `Vision`, `Embedding`, `ToolCalling`).
+  - [ ] Cài đặt `ModelRegistry` quản lý metadata model, kích thước VRAM ước tính và context window.
+  - [ ] Hỗ trợ AI Router: tự động chọn local Ollama khi có sẵn, fallback sang Gemini khi model yêu cầu không đáp ứng.
+- [ ] **B2.3: Local Text Embeddings trên CPU (`vc-storage`)**
+  - [ ] Tích hợp crate `fastembed-rs` (model `bge-small-en-v1.5` / `multilingual`).
+  - [ ] Chạy hoàn toàn trên **CPU ONNX Runtime**, sinh vector 384 chiều, **0 MB VRAM**.
+- [ ] **B2.4: Tìm Kiếm Ký Ức Theo Vector (Cosine Semantic Search) (`vc-storage`)**
+  - [ ] Cập nhật bảng `memories` trong SQLite bổ sung cột lưu trữ vector hoặc bảng vector riêng.
+  - [ ] Cài đặt hàm `find_similar_memories(actor_id, query_embedding, top_k, threshold)` tính toán cosine similarity.
+  - [ ] Bảo vệ nghiêm ngặt tính riêng tư: chỉ tìm kiếm ký ức thuộc về chính `ActorId` đang tương tác.
+- [ ] **B2.5: Giám Sát Tài Nguyên VRAM Cơ Bản (`vc-runtime`)**
+  - [ ] Thêm module `hardware` kiểm tra dung lượng VRAM/RAM hệ thống trước khi nạp model nặng.
 
-DEV B
-Context + LlmProvider
-DAY 2
-────────────────────────────
-DEV A
-Emotion + Relationship
+#### Nhiệm vụ của Dev A (Character Memory & Consolidation)
+- [ ] **A2.1: Công Thức Trọng Số & Phân Rã Ký Ức (`vc-core::memory`)**
+  - [ ] Cài đặt hàm `apply_time_decay()` làm giảm dần độ ưu tiên của các episodic memory vụn vặt theo thời gian.
+  - [ ] Bổ sung trường `importance_score` (1-10) và `last_accessed_at`.
+- [ ] **A2.2: Giải Quyết Xung Đột Ký Ức (Conflict Resolution) (`vc-core::memory`)**
+  - [ ] Xử lý logic khi người dùng cập nhật thông tin mâu thuẫn với ký ức cũ (ví dụ: "Tôi thích màu đỏ" -> "Bây giờ tôi thích màu xanh").
+- [ ] **A2.3: Logic Tổng Hợp Ký Ức (Sleep & Idle Consolidation) (`vc-core::memory`)**
+  - [ ] Thiết kế logic nén nhiều mẩu ký ức Episodic trong ngày thành một Semantic Memory cốt lõi.
 
-DEV B
-Mock LLM + Runtime
-DAY 3
-────────────────────────────
-DEV A
-Memory foundation
+---
 
-DEV B
-Storage + Gemini
-DAY 4
-────────────────────────────
-DEV A
-Decision baseline
+### PHASE 3 — Voice In/Out & Audio Pipeline (Tai & Giọng Nói)
+- [ ] **B3.1: Audio Capture & VAD (`vc-runtime`)**
+  - [ ] Thu âm microphone qua `cpal` trên Windows WASAPI.
+  - [ ] Tích hợp Silero VAD trên CPU phát hiện giọng nói và ngắt audio chunk.
+- [ ] **B3.2: Local STT với Whisper (`vc-runtime`)**
+  - [ ] Tích hợp `whisper.cpp` (chạy trên CPU threads) lượng tử hóa int8.
+  - [ ] Hỗ trợ chế độ Push-to-Talk và Continuous Listening có VAD.
+- [ ] **B3.3: Local TTS với Piper & Kokoro (`vc-runtime`)**
+  - [ ] Tích hợp Piper TTS (C++ CPU engine) tốc độ siêu nhanh (RTF < 0.2).
+  - [ ] Phát âm thanh mượt mà qua loa bằng `rodio`.
+- [ ] **A3.1: Emotion-to-Speech Modulator (`vc-core` -> `vc-runtime`)**
+  - [ ] Ánh xạ `(valence, arousal)` sang `pitch_modifier`, `speed_modifier`, và `energy_level` tự nhiên.
 
-DEV B
-Integration
+---
 
-Sau đó:
+### PHASE 4 — Avatar Thân Thể & Real-Time Lip-Sync
+- [ ] **B4.1: Avatar Control Protocol (`vc-server`)**
+  - [ ] Thiết lập kênh WebSocket chuyên biệt stream `AvatarCommand` (Expression, Blink, Mouth, Head).
+- [ ] **B4.2: Tích hợp Live2D & 3D VRM (`apps/vc-web`)**
+  - [ ] Nhúng Live2D Cubism Web SDK và Three.js `@pixiv/three-vrm`.
+  - [ ] Cài đặt Auto-Blink ngẫu nhiên và chuyển động mắt tự nhiên (Idle Eye Gaze).
+- [ ] **B4.3: Real-Time Audio Lip-Sync (`apps/vc-web` / `vc-runtime`)**
+  - [ ] Phân tích biên độ âm thanh RMS/Viseme từ audio TTS để điều khiển nhép miệng chính xác.
+- [ ] **A4.1: Mapping Cảm Xúc Sang Blendshapes Avatar (`vc-core`)**
+  - [ ] Chuyển đổi 8 trục cảm xúc sang biểu cảm: Joy, Sadness, Anger, Surprise, Shy, Smug.
 
-              Integration
-                   ↓
-        ┌──────────┴──────────┐
-        ↓                     ↓
-   Real Memory          Real Context
-        ↓                     ↓
-        └──────────┬──────────┘
-                   ↓
-              Real Decision
-                   ↓
-                 Gemini
-Cách chia branch
+---
 
-Mày:
+### PHASE 5 — Thị Giác Thích Ứng (Adaptive Screen Perception & VisionRouter)
+- [ ] **B5.1: Level 1 - Screen Change Sensing (`vc-runtime`)**
+  - [ ] Win32 Desktop Duplication API chụp màn hình nhanh.
+  - [ ] Thuật toán so sánh pixel diff trên CPU (0 VRAM). Bỏ qua khi màn hình tĩnh.
+- [ ] **B5.2: Level 2 - Fast Text/UI Perception (`vc-runtime`)**
+  - [ ] Lấy tên cửa sổ active, chạy OCR siêu nhẹ (Tesseract/RapidOCR trên CPU).
+- [ ] **B5.3: Level 3 - VisionProvider & VisionRouter (`vc-runtime` / `vc-llm`)**
+  - [ ] Xây dựng trait `VisionProvider` (OllamaQwen3VL, OllamaQwen25VL, CloudGeminiVision, MockVision).
+  - [ ] Cài đặt `VisionRouter` với model mặc định `qwen3-vl:2b` (1.9 GB) tối ưu cho GUI/UI element detection và Computer Use.
+  - [ ] Hỗ trợ GPU Model Multiplexing trong `ResourceManager` (hoán đổi quyền ưu tiên VRAM giữa Chat LLM và Vision LLM).
+- [ ] **A5.1: Perception Scheduler & Visual Memory (`vc-core`)**
+  - [ ] Lưu trữ `VisualMemory` mô tả khung cảnh thay vì lưu ảnh thô.
 
-feature/personality
-feature/state
-feature/emotion
-feature/relationship
-feature/memory
-feature/decision
 
-Bạn mày:
+---
 
-feature/context
-feature/runtime
-feature/llm
-feature/gemini
-feature/storage
-feature/integration
+### PHASE 6 — Tương Tác Máy Tính An Toàn (Sandboxed Computer Use)
+- [ ] **B6.1: Win32 OS Tools (`vc-runtime`)**
+  - [ ] Mở ứng dụng trong whitelist, click chuột, gõ phím, cuộn trang.
+- [ ] **B6.2: Permission Sandbox & Policy Manager (`vc-runtime`)**
+  - [ ] Phân cấp rủi ro (`SafeRead`, `AppControl`, `Dangerous`).
+  - [ ] Chặn tuyệt đối xóa file hệ thống, can thiệp registry.
+  - [ ] Phím tắt khẩn cấp (Panic Key) ngắt ngay lập tức mọi quyền điều khiển.
+- [ ] **B6.3: Action-Verification Loop (`vc-runtime`)**
+  - [ ] Chụp màn hình vùng chọn kiểm chứng kết quả sau khi thực hiện hành động.
 
-Nhưng không nhất thiết mỗi task một branch. Một feature tương đối lớn có thể gom thành một branch.
+---
 
-Ví dụ:
+### PHASE 7 — Hệ Thống Chú Ý & Tính Tự Chủ (Attention & Autonomy)
+- [ ] **A7.1: World State Domain Model (`vc-core`)**
+  - [ ] Theo dõi ứng dụng hiện tại, thời gian trong ngày, sự hiện diện của user.
+- [ ] **A7.2: Attention Engine & Salience Scoring (`vc-core`)**
+  - [ ] Tính điểm chú ý dựa trên độ khẩn cấp, độ tò mò, quan hệ user và cooldown.
+- [ ] **A7.3: Idle Behaviors & Proactive Remarks (`vc-core`)**
+  - [ ] Hành vi chủ động bắt chuyện tự nhiên khi có sự kiện đáng chú ý.
 
-feature/character-state
+---
 
-chứa:
+### PHASE 8 — Mạng Xã Hội (Discord & Livestream Unified Chat)
+- [ ] **B8.1: Unified Chat Event Bus (`vc-runtime`)**
+  - [ ] Chuẩn hóa tin nhắn đa nền tảng thành `NormalizedChatMessage`.
+- [ ] **B8.2: Discord Adapter (`vc-integrations-discord`)**
+  - [ ] Tích hợp bot Discord qua `serenity-rs`, hỗ trợ quan hệ riêng từng người bạn.
+- [ ] **B8.3: YouTube & Twitch Chat Ingestion (`vc-integrations-stream`)**
+  - [ ] Kết nối đọc chat livestream thời gian thực.
+- [ ] **B8.4: Chat Priority Engine & Spam Filter (`vc-runtime`)**
+  - [ ] Lọc spam, nhận diện câu hỏi hay, ưu tiên SuperChat/Người quen.
 
-state
-emotion
-Cực kỳ quan trọng: contract freeze theo từng Phase
+---
 
-Có thể xảy ra trường hợp Dev A đang làm Memory và nhận ra:
+### PHASE 9 — AI VTuber Runtime & Chế Độ Phát Trực Tiếp (Stream Mode)
+- [ ] **B9.1: Stream Mode Orchestrator (`vc-runtime`)**
+  - [ ] Vòng lặp tự động: Đọc chat -> Suy nghĩ -> Nói chuyện -> Cử động Avatar -> OBS.
+- [ ] **B9.2: Tích hợp OBS Studio (`vc-runtime` / `apps/vc-web`)**
+  - [ ] Xuất hình ảnh nền trong suốt qua Spout2 / Web Browser Source vào OBS.
+  - [ ] Xuất âm thanh qua Virtual Audio Cable tới microphone của stream.
 
-MemoryQuery
+---
 
-thiết kế hiện tại chưa đủ.
-
-Không được âm thầm sửa rồi push.
-
-Quy trình:
-
-A phát hiện vấn đề
-      ↓
-mở issue / ADR
-      ↓
-hai người review
-      ↓
-sửa contract
-      ↓
-update integration tests
-      ↓
-tiếp tục code
-Milestone Phase 1
-
-Tao sẽ đặt 3 mốc.
-
-M1 — Character Core
-Personality
-State
-Emotion
-Relationship
-
-chạy độc lập.
-
-M2 — Cognitive Pipeline
-Memory
-+
-Decision
-+
-Context
-
-chạy với mocks.
-
-M3 — First Real Character
-User
- ↓
-Memory
- ↓
-State
- ↓
-Decision
- ↓
-Context
- ↓
-Gemini
- ↓
-Response
-
-Đến M3 mới có thể nói:
-
-VirtualCharacter đã bắt đầu hoạt động như một character, thay vì chỉ là tập domain model.
-
-Tao sẽ chia project thành 2 "mặt trận"
-                    ┌─────────────────────┐
-                    │   Shared Contracts  │
-                    └──────────┬──────────┘
-                               │
-              ┌────────────────┴────────────────┐
-              ↓                                 ↓
-       DEV A — Character                 DEV B — Runtime
-              │                                 │
- Personality │                                 │ Context
- State       │                                 │ Runtime
- Emotion     │                                 │ LLM
- Relationship│                                 │ Gemini
- Memory      │                                 │ Storage
- Decision    │                                 │ Integration
-              │                                 │
-              └──────────────┬──────────────────┘
-                             ↓
-                       End-to-End
+### PHASE 10 — Tự Thích Ứng Dài Hạn & Đa Nhân Vật (Continual Growth)
+- [ ] **A10.1: Sleep Memory Consolidation Worker (`vc-runtime`)**
+  - [ ] Chạy ngầm khi nhàn rỗi để đúc kết tri thức và tinh chỉnh ký ức dài hạn.
+- [ ] **A10.2: Multi-Character Profile Manager (`vc-core`)**
+  - [ ] Cho phép chuyển đổi linh hoạt nhiều nhân vật (Aria, Nero, v.v.) dùng chung cùng một Core.

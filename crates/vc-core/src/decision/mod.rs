@@ -81,7 +81,12 @@ mod tests {
     #[test]
     fn test_decision_creation_and_serialization() {
         let action = Action::new(ActionType::WarmGreeting, "welcoming user", "Warm greeting");
-        let candidate = DecisionCandidate::new(action.clone(), 0.95, 0.92, "Direct friendly greeting detected");
+        let candidate = DecisionCandidate::new(
+            action.clone(),
+            0.95,
+            0.92,
+            "Direct friendly greeting detected",
+        );
         let result = DecisionResult {
             selected_action: action,
             confidence: 0.95,
@@ -91,7 +96,10 @@ mod tests {
         };
 
         let decision = Decision::new(result);
-        assert_eq!(decision.result.selected_action.action_type, ActionType::WarmGreeting);
+        assert_eq!(
+            decision.result.selected_action.action_type,
+            ActionType::WarmGreeting
+        );
         assert!(decision.result.confidence >= 0.9);
 
         let json = serde_json::to_string(&decision).expect("Serialization failed");

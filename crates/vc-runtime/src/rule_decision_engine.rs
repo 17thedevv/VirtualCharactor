@@ -24,7 +24,11 @@ impl RuleDecisionEngine {
 impl DecisionEngine for RuleDecisionEngine {
     fn make_decision(&self, ctx: &DecisionContext) -> Result<Decision> {
         let input_lower = ctx.user_input.to_lowercase();
-        let rel_stage = ctx.relationship.as_ref().map(|r| r.state.stage).unwrap_or(RelationshipStage::Stranger);
+        let rel_stage = ctx
+            .relationship
+            .as_ref()
+            .map(|r| r.state.stage)
+            .unwrap_or(RelationshipStage::Stranger);
 
         let empathy = ctx.personality.traits.empathy.value();
         let curiosity = ctx.personality.traits.curiosity.value();
@@ -72,13 +76,21 @@ impl DecisionEngine for RuleDecisionEngine {
         if is_greeting {
             let score_greeting = 0.80 + (empathy * 0.15);
             candidates.push(DecisionCandidate::new(
-                Action::new(ActionType::WarmGreeting, "welcoming", "Chào đón ấm áp và mở rộng kết nối"),
+                Action::new(
+                    ActionType::WarmGreeting,
+                    "welcoming",
+                    "Chào đón ấm áp và mở rộng kết nối",
+                ),
                 0.95,
                 score_greeting,
                 "Phát hiện lời chào thân thiện; ưu tiên tiếp đón nồng hậu.",
             ));
             candidates.push(DecisionCandidate::new(
-                Action::new(ActionType::CuriousInquiry, "asking_focus", "Hỏi thăm sự chú ý và công việc hiện tại"),
+                Action::new(
+                    ActionType::CuriousInquiry,
+                    "asking_focus",
+                    "Hỏi thăm sự chú ý và công việc hiện tại",
+                ),
                 0.65,
                 0.60 + (curiosity * 0.15),
                 "Chủ động gợi mở hỏi han người dùng đang làm gì.",
@@ -87,13 +99,21 @@ impl DecisionEngine for RuleDecisionEngine {
 
         if is_identity {
             candidates.push(DecisionCandidate::new(
-                Action::new(ActionType::SelfDisclosure, "core_identity", "Bộc lộ bản sắc căn tính và giá trị cốt lõi"),
+                Action::new(
+                    ActionType::SelfDisclosure,
+                    "core_identity",
+                    "Bộc lộ bản sắc căn tính và giá trị cốt lõi",
+                ),
                 0.96,
                 0.92,
                 "Người dùng hỏi về bản thân; bộc lộ chân thành và nhất quán.",
             ));
             candidates.push(DecisionCandidate::new(
-                Action::new(ActionType::ThoughtfulExplanation, "cognitive_architecture", "Chia sẻ góc nhìn triết học và nhận thức số"),
+                Action::new(
+                    ActionType::ThoughtfulExplanation,
+                    "cognitive_architecture",
+                    "Chia sẻ góc nhìn triết học và nhận thức số",
+                ),
                 0.75,
                 0.70 + (curiosity * 0.15),
                 "Diễn giải sâu sắc về nhận thức và trải nghiệm đồng hành.",
@@ -103,13 +123,21 @@ impl DecisionEngine for RuleDecisionEngine {
         if is_accomplishment {
             let score_encourage = 0.85 + (empathy * 0.10);
             candidates.push(DecisionCandidate::new(
-                Action::new(ActionType::InspireEncourage, "celebrate_achievement", "Chúc mừng và cùng chia sẻ niềm vui thành tựu"),
+                Action::new(
+                    ActionType::InspireEncourage,
+                    "celebrate_achievement",
+                    "Chúc mừng và cùng chia sẻ niềm vui thành tựu",
+                ),
                 0.94,
                 score_encourage,
                 "Người dùng vừa hoàn thành một cột mốc quan trọng; cộng hưởng tự hào.",
             ));
             candidates.push(DecisionCandidate::new(
-                Action::new(ActionType::CuriousInquiry, "explore_next_step", "Tò mò khám phá những bước tiếp theo"),
+                Action::new(
+                    ActionType::CuriousInquiry,
+                    "explore_next_step",
+                    "Tò mò khám phá những bước tiếp theo",
+                ),
                 0.78,
                 0.72 + (curiosity * 0.15),
                 "Khám phá xem kế hoạch tiếp theo của dự án là gì.",
@@ -119,13 +147,21 @@ impl DecisionEngine for RuleDecisionEngine {
         if is_emotional {
             let score_resonance = 0.85 + (empathy * 0.12);
             candidates.push(DecisionCandidate::new(
-                Action::new(ActionType::EmotionalResonance, "empathic_comfort", "Thấu cảm và chia sẻ cảm xúc chân thành"),
+                Action::new(
+                    ActionType::EmotionalResonance,
+                    "empathic_comfort",
+                    "Thấu cảm và chia sẻ cảm xúc chân thành",
+                ),
                 0.92,
                 score_resonance,
                 "Chủ đề mang tính cảm xúc cao; ưu tiên hiện diện ấm áp và thấu hiểu.",
             ));
             candidates.push(DecisionCandidate::new(
-                Action::new(ActionType::ActiveListening, "listening", "Lắng nghe chăm chú và tạo không gian an toàn"),
+                Action::new(
+                    ActionType::ActiveListening,
+                    "listening",
+                    "Lắng nghe chăm chú và tạo không gian an toàn",
+                ),
                 0.80,
                 0.75,
                 "Tạo điểm tựa lắng nghe tĩnh lặng, không phán xét.",
@@ -134,7 +170,11 @@ impl DecisionEngine for RuleDecisionEngine {
 
         if is_technical {
             candidates.push(DecisionCandidate::new(
-                Action::new(ActionType::ThoughtfulExplanation, "system_concept", "Diễn giải thấu đáo và phân tích logic"),
+                Action::new(
+                    ActionType::ThoughtfulExplanation,
+                    "system_concept",
+                    "Diễn giải thấu đáo và phân tích logic",
+                ),
                 0.90,
                 0.80 + (curiosity * 0.12),
                 "Chủ đề kỹ thuật/kiến trúc; diễn giải mạch lạc và thấu đáo.",
@@ -146,19 +186,32 @@ impl DecisionEngine for RuleDecisionEngine {
             RelationshipStage::Stranger => 0.20, // Suppressed for strangers
             RelationshipStage::Acquaintance => 0.45,
             RelationshipStage::CasualCompanion => 0.65 + (playfulness * 0.15),
-            RelationshipStage::CloseFriend | RelationshipStage::Confidant => 0.75 + (playfulness * 0.20),
+            RelationshipStage::CloseFriend | RelationshipStage::Confidant => {
+                0.75 + (playfulness * 0.20)
+            }
         };
         candidates.push(DecisionCandidate::new(
-            Action::new(ActionType::GentleBanter, "witty_banter", "Trêu đùa nhẹ nhàng, duyên dáng và dí dỏm"),
+            Action::new(
+                ActionType::GentleBanter,
+                "witty_banter",
+                "Trêu đùa nhẹ nhàng, duyên dáng và dí dỏm",
+            ),
             0.60,
             banter_gated_score,
-            format!("Hành động dí dỏm được điều tiết theo giai đoạn quan hệ ({:?}).", rel_stage),
+            format!(
+                "Hành động dí dỏm được điều tiết theo giai đoạn quan hệ ({:?}).",
+                rel_stage
+            ),
         ));
 
         // Default fallback if no specific triggers matched
         if candidates.is_empty() {
             candidates.push(DecisionCandidate::new(
-                Action::new(ActionType::CuriousInquiry, "conversational_lead", "Gợi mở cuộc trò chuyện với sự tò mò ấm áp"),
+                Action::new(
+                    ActionType::CuriousInquiry,
+                    "conversational_lead",
+                    "Gợi mở cuộc trò chuyện với sự tò mò ấm áp",
+                ),
                 0.80,
                 0.75 + (curiosity * 0.15),
                 "Tiếp tục mạch hội thoại mở và duy trì kết nối.",
@@ -166,8 +219,15 @@ impl DecisionEngine for RuleDecisionEngine {
         }
 
         // 3. Candidate Sorting & Optimal Selection
-        candidates.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
-        let selected = candidates.first().cloned().expect("Candidates must not be empty");
+        candidates.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+        let selected = candidates
+            .first()
+            .cloned()
+            .expect("Candidates must not be empty");
 
         // 4. Synthesize Inner Monologue Reasoning
         let reasoning = match selected.action.action_type {
@@ -185,7 +245,7 @@ impl DecisionEngine for RuleDecisionEngine {
                 empathy * 100.0
             ),
             ActionType::SelfDisclosure => format!(
-                "Người dùng bày tỏ sự quan tâm tới căn tính của mình. Chia sẻ chân thật về nhận thức số và các giá trị sống cốt lõi."
+                "Người bạn quan tâm tới bản thân mình. Chia sẻ chân thành, gần gũi về cảm xúc và những điều mình yêu thích."
             ),
             ActionType::ThoughtfulExplanation => format!(
                 "Chủ đề đòi hỏi chiều sâu suy nghĩ. Sử dụng tư duy phân tích và sự kiên nhẫn ({:.0}%) để làm sáng tỏ vấn đề một cách mạch lạc.",
@@ -233,10 +293,20 @@ mod tests {
         let engine = RuleDecisionEngine::new();
         let personality = Personality::baseline_aria();
         let state = CharacterState::default_aria();
-        let ctx = DecisionContext::new("Chào Aria buổi sáng!", None, personality, state, None, vec![]);
+        let ctx = DecisionContext::new(
+            "Chào Aria buổi sáng!",
+            None,
+            personality,
+            state,
+            None,
+            vec![],
+        );
 
         let decision = engine.make_decision(&ctx).expect("Decision should succeed");
-        assert_eq!(decision.result.selected_action.action_type, ActionType::WarmGreeting);
+        assert_eq!(
+            decision.result.selected_action.action_type,
+            ActionType::WarmGreeting
+        );
         assert!(decision.result.confidence > 0.85);
         assert!(!decision.result.candidates.is_empty());
     }
@@ -248,22 +318,55 @@ mod tests {
         let state = CharacterState::default_aria();
 
         // For Stranger: Banter score is heavily suppressed
-        let stranger_rel = Relationship::new_stranger(vc_core::character::CharacterId(personality.id.0), "stranger-1");
-        let ctx_stranger = DecisionContext::new("Nói gì đi bạn", None, personality.clone(), state.clone(), Some(stranger_rel), vec![]);
+        let stranger_rel = Relationship::new_stranger(
+            vc_core::character::CharacterId(personality.id.0),
+            "stranger-1",
+        );
+        let ctx_stranger = DecisionContext::new(
+            "Nói gì đi bạn",
+            None,
+            personality.clone(),
+            state.clone(),
+            Some(stranger_rel),
+            vec![],
+        );
         let decision_stranger = engine.make_decision(&ctx_stranger).unwrap();
-        let banter_stranger = decision_stranger.result.candidates.iter().find(|c| c.action.action_type == ActionType::GentleBanter).unwrap();
+        let banter_stranger = decision_stranger
+            .result
+            .candidates
+            .iter()
+            .find(|c| c.action.action_type == ActionType::GentleBanter)
+            .unwrap();
 
         // For Confidant: Banter score is high
-        let mut confidant_rel = Relationship::new_stranger(vc_core::character::CharacterId(personality.id.0), "friend-1");
+        let mut confidant_rel = Relationship::new_stranger(
+            vc_core::character::CharacterId(personality.id.0),
+            "friend-1",
+        );
         confidant_rel.metrics.closeness = vc_core::relationship::RelationshipScore::clamped(0.85);
         confidant_rel.metrics.trust = vc_core::relationship::RelationshipScore::clamped(0.90);
         confidant_rel.metrics.familiarity = vc_core::relationship::RelationshipScore::clamped(0.80);
         confidant_rel.sync_state();
 
-        let ctx_confidant = DecisionContext::new("Nói gì đi bạn", None, personality, state, Some(confidant_rel), vec![]);
+        let ctx_confidant = DecisionContext::new(
+            "Nói gì đi bạn",
+            None,
+            personality,
+            state,
+            Some(confidant_rel),
+            vec![],
+        );
         let decision_confidant = engine.make_decision(&ctx_confidant).unwrap();
-        let banter_confidant = decision_confidant.result.candidates.iter().find(|c| c.action.action_type == ActionType::GentleBanter).unwrap();
+        let banter_confidant = decision_confidant
+            .result
+            .candidates
+            .iter()
+            .find(|c| c.action.action_type == ActionType::GentleBanter)
+            .unwrap();
 
-        assert!(banter_confidant.score > banter_stranger.score, "Banter score must be higher for confidants than strangers");
+        assert!(
+            banter_confidant.score > banter_stranger.score,
+            "Banter score must be higher for confidants than strangers"
+        );
     }
 }

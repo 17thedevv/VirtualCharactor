@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use uuid::Uuid;
 use vc_core::character::CharacterId;
 
@@ -115,9 +115,14 @@ impl SessionManager {
     }
 
     /// Retrieve active session or create a new one if none exists or previous expired.
-    pub fn get_or_create(&mut self, character_id: CharacterId, actor_id: &str, now: u64) -> &mut CharacterSession {
+    pub fn get_or_create(
+        &mut self,
+        character_id: CharacterId,
+        actor_id: &str,
+        now: u64,
+    ) -> &mut CharacterSession {
         let key = (character_id, actor_id.to_string());
-        
+
         let needs_new = match self.sessions.get(&key) {
             Some(sess) => !sess.is_active(),
             None => true,
@@ -128,10 +133,16 @@ impl SessionManager {
             self.sessions.insert(key.clone(), new_session);
         }
 
-        self.sessions.get_mut(&key).expect("Session must exist after insert")
+        self.sessions
+            .get_mut(&key)
+            .expect("Session must exist after insert")
     }
 
-    pub fn get_session(&self, character_id: CharacterId, actor_id: &str) -> Option<&CharacterSession> {
+    pub fn get_session(
+        &self,
+        character_id: CharacterId,
+        actor_id: &str,
+    ) -> Option<&CharacterSession> {
         self.sessions.get(&(character_id, actor_id.to_string()))
     }
 
@@ -147,7 +158,9 @@ impl SessionManager {
     /// Check and transition sessions that have exceeded idle timeout.
     pub fn check_idle_timeouts(&mut self, now: u64, idle_seconds: u64) {
         for session in self.sessions.values_mut() {
-            if session.status == SessionStatus::Active && now.saturating_sub(session.last_active_at) >= idle_seconds {
+            if session.status == SessionStatus::Active
+                && now.saturating_sub(session.last_active_at) >= idle_seconds
+            {
                 session.mark_idle();
             }
         }
@@ -204,6 +217,9 @@ mod tests {
             s.id
         };
 
-        assert_ne!(sess_id1, sess_id2, "New active session must be created after completion");
+        assert_ne!(
+            sess_id1, sess_id2,
+            "New active session must be created after completion"
+        );
     }
 }

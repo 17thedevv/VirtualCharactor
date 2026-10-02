@@ -86,16 +86,28 @@ impl ContextPrioritizer {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::item::ContextPriority;
+    use super::*;
 
     #[test]
     fn test_prioritizer_retains_critical_and_drops_low_under_budget() {
         let items = vec![
-            ContextItem::new(ContextSource::System, "Critical System", ContextPriority::Critical).with_tokens(50),
-            ContextItem::new(ContextSource::User, "User query", ContextPriority::Critical).with_tokens(40),
-            ContextItem::new(ContextSource::State, "Current emotion", ContextPriority::High).with_tokens(30),
-            ContextItem::new(ContextSource::Memory, "Old memory", ContextPriority::Low).with_tokens(100),
+            ContextItem::new(
+                ContextSource::System,
+                "Critical System",
+                ContextPriority::Critical,
+            )
+            .with_tokens(50),
+            ContextItem::new(ContextSource::User, "User query", ContextPriority::Critical)
+                .with_tokens(40),
+            ContextItem::new(
+                ContextSource::State,
+                "Current emotion",
+                ContextPriority::High,
+            )
+            .with_tokens(30),
+            ContextItem::new(ContextSource::Memory, "Old memory", ContextPriority::Low)
+                .with_tokens(100),
         ];
 
         // Strict tiny budget of 130 tokens

@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use super::action::Action;
+use serde::{Deserialize, Serialize};
 
 /// A candidate action evaluated by the Decision Engine during deliberation.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::error::{CoreError, Result};
+use serde::{Deserialize, Serialize};
 
 /// Bounded float score [0.0, 1.0] representing a relationship dimension.
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]

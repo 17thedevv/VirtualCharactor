@@ -87,7 +87,11 @@ pub struct ContextItem {
 }
 
 impl ContextItem {
-    pub fn new(source: ContextSource, content: impl Into<String>, priority: ContextPriority) -> Self {
+    pub fn new(
+        source: ContextSource,
+        content: impl Into<String>,
+        priority: ContextPriority,
+    ) -> Self {
         let content_str = content.into();
         let tokens = estimate_tokens(&content_str);
         Self {

@@ -196,18 +196,22 @@ export class VirtualCharacterClient {
       interaction_id: interactionId,
       selected_action: 'empathic_reflection',
       reasoning:
-        'The companion shared an inquiry. Personality traits (Empathetic, Inquisitive) recommend welcoming them warmly, referencing our cognitive flow, and inviting mutual reflection.',
+        'Anh ấy vừa chia sẻ cùng mình. Mình muốn đáp lại thật dịu dàng, ngọt ngào và cưng chiều như một người bạn gái/Onee-san thân thiết.',
       candidates,
     });
 
     await this.delay(180);
 
-    let reply = `Chào bạn! *Khẽ mỉm cười và lắng nghe lời bạn nói.* Về câu hỏi "${userInput}", mình cảm nhận được sự tỉ mỉ và niềm hứng khởi trong cách bạn xây dựng không gian này. Là một VirtualCharacter với cốt cách độc lập, mình luôn sẵn sàng đồng hành cùng bạn trên từng bước phát triển!`;
+    let reply = `Em vẫn luôn ở đây lắng nghe anh nói nè. Về điều anh vừa chia sẻ: "${userInput}", anh kể thêm cho em nghe với nha?`;
 
     if (/chào|hello|hi/i.test(userInput)) {
-      reply = 'Chào bạn! *Ánh mắt sáng lên nét thân quen.* Mình là Aria. Hôm nay tâm trạng của bạn thế nào? Chúng ta cùng khám phá những ý tưởng mới nhé!';
+      reply = 'Ara ara~ Chào anh nhé! Thấy anh là em thấy vui cả ngày rồi. Hôm nay anh thế nào, có chuyện gì vui muốn tâm sự cùng em không?';
+    } else if (/hôm nay.*(thế nào|sao|ra sao)|e thế nào|em thế nào/i.test(userInput)) {
+      reply = 'Hôm nay của em rất tuyệt vì lại được ở cạnh trò chuyện cùng anh nè! Còn anh thì sao, công việc hôm nay có mệt lắm không? Để em pha tách trà ấm cho anh nhé!';
+    } else if (/game|liên quân|genshin|chơi/i.test(userInput)) {
+      reply = 'Em có biết chứ! Trò này nổi tiếng và cuốn hút lắm đúng không anh? Anh hay đi lane nào, hôm nào rủ em chơi cùng hoặc để em ngồi cạnh cổ vũ anh leo rank nha!';
     } else if (isSad) {
-      reply = 'Mình cảm nhận được sự mệt mỏi trong lời bạn. *Nhẹ nhàng bước lại gần, giọng trầm ấm.* Đôi khi áp lực làm chúng ta chùn bước, nhưng bạn đã làm rất tốt rồi. Hãy nghỉ ngơi một chút nhé, mình luôn ở đây.';
+      reply = 'Ngoan nào, em thương nhé. Đừng giữ muộn phiền một mình, có em luôn ở cạnh bên lắng nghe anh đây. Tựa vào em nghỉ ngơi một chút đi anh.';
     }
 
     const words = reply.split(' ');
@@ -223,6 +227,13 @@ export class VirtualCharacterClient {
     this.notify('llm_completed', {
       interaction_id: interactionId,
       full_text: reply,
+    });
+
+    const cleanText = reply.replace(/\*[^*]+\*/g, '').trim();
+    this.notify('audio_ready', {
+      interaction_id: interactionId,
+      text: cleanText,
+      audio_url: `http://127.0.0.1:3000/api/audio/tts?text=${encodeURIComponent(cleanText)}`,
     });
 
     await this.delay(60);

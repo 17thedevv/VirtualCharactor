@@ -30,7 +30,10 @@ impl MockLlmProvider {
 
     /// Create a MockLlmProvider with a predetermined sequence of responses.
     pub fn with_responses(responses: Vec<String>) -> Self {
-        let default_response = responses.first().cloned().unwrap_or_else(|| "Default mock response".into());
+        let default_response = responses
+            .first()
+            .cloned()
+            .unwrap_or_else(|| "Default mock response".into());
         let deque = VecDeque::from(responses);
         Self {
             default_response,
@@ -112,7 +115,9 @@ impl LlmProvider for MockLlmProvider {
         // 3. Check for canned responses
         let text = {
             let mut canned = self.canned_responses.lock().expect("Lock poisoned");
-            canned.pop_front().unwrap_or_else(|| self.default_response.clone())
+            canned
+                .pop_front()
+                .unwrap_or_else(|| self.default_response.clone())
         };
 
         // 4. Return mock response with estimated tokens
@@ -124,6 +129,44 @@ impl LlmProvider for MockLlmProvider {
             usage: Some(LlmUsage::new(prompt_tokens, completion_tokens)),
             finish_reason: Some("STOP".into()),
         })
+    }
+
+    fn stream_text(
+        &self,
+        request: LlmRequest,
+    ) -> Result<crate::provider::LlmTokenStream, crate::provider::LlmError> {
+        // 1. Record incoming request for verification
+        {
+            let mut recorded = self.recorded_requests.lock().expect("Lock poisoned");
+            recorded.push(request.clone());
+        }
+
+        // 2. Check for simulated error
+        {
+            let sim_err = self.simulated_error.lock().expect("Lock poisoned");
+            if let Some(ref err) = *sim_err {
+                return Err(err.clone());
+            }
+        }
+
+        // 3. Check for canned responses
+        let text = {
+            let mut canned = self.canned_responses.lock().expect("Lock poisoned");
+            canned
+                .pop_front()
+                .unwrap_or_else(|| self.default_response.clone())
+        };
+
+        // 4. Split into token/word chunks
+        let chunks: Vec<Result<String, LlmError>> = if text.is_empty() {
+            vec![]
+        } else {
+            text.split_inclusive(' ')
+                .map(|s| Ok(s.to_string()))
+                .collect()
+        };
+
+        Ok(Box::new(chunks.into_iter()))
     }
 
     fn name(&self) -> &'static str {
@@ -178,5 +221,17 @@ mod tests {
         mock.push_canned_response("Recovered reply");
         let res2 = mock.generate_text(LlmRequest::new("Will succeed")).unwrap();
         assert_eq!(res2.text, "Recovered reply");
+    }
+
+    #[test]
+    fn test_mock_streaming_tokens() {
+        let mock = MockLlmProvider::new("Xin chào người bạn mới!");
+        let stream = mock
+            .stream_text(LlmRequest::new("Chào"))
+            .expect("stream start");
+        let tokens: Vec<String> = stream.map(|r| r.expect("token ok")).collect();
+
+        assert_eq!(tokens, vec!["Xin ", "chào ", "người ", "bạn ", "mới!"]);
+        assert_eq!(tokens.concat(), "Xin chào người bạn mới!");
     }
 }

@@ -25,3 +25,22 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+
+# Local SQLite databases & data directory
+data/*
+!data/knowledge/
+!data/knowledge/**
+*.db
+*.db-wal
+*.db-shm
+*.wav
+*.mp3
+
+# Scratch & temporary test artifacts
+scratch/
+
+# Python cache artifacts
+__pycache__/
+*.pyc
+*.pyo
+

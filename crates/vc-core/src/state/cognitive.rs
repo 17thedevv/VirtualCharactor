@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use super::emotion::EmotionScore;
+use serde::{Deserialize, Serialize};
 
 /// Cognitive state of the character — what it's attending to and how.
 ///

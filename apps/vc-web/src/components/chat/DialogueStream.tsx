@@ -1,17 +1,21 @@
 import React, { useEffect, useRef } from 'react';
 import type { ChatMessage } from '../../types/character';
-import { Bot, User, Sparkles } from 'lucide-react';
+import { Bot, User, Sparkles, Globe, Search, Volume2 } from 'lucide-react';
 
 interface DialogueStreamProps {
   messages: ChatMessage[];
   characterName: string;
   onSelectTopic: (topic: string) => void;
+  onPlayMessage?: (text: string) => void;
+  currentSearch?: { query: string; message: string } | null;
 }
 
 export const DialogueStream: React.FC<DialogueStreamProps> = ({
   messages,
   characterName,
   onSelectTopic,
+  onPlayMessage,
+  currentSearch,
 }) => {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -206,6 +210,30 @@ export const DialogueStream: React.FC<DialogueStreamProps> = ({
                 <span>
                   {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
+                {!isUser && onPlayMessage && !msg.isStreaming && (
+                  <button
+                    onClick={() => onPlayMessage(msg.text)}
+                    title="Nghe giọng nói Aria đọc tin nhắn này"
+                    style={{
+                      background: 'rgba(0, 242, 254, 0.08)',
+                      border: '1px solid rgba(0, 242, 254, 0.25)',
+                      color: 'var(--accent-cyan)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontSize: '0.72rem',
+                      fontWeight: 500,
+                      transition: 'all 0.2s ease',
+                      marginLeft: '4px',
+                    }}
+                  >
+                    <Volume2 size={12} />
+                    <span>Nghe</span>
+                  </button>
+                )}
               </div>
 
               <div
@@ -226,6 +254,39 @@ export const DialogueStream: React.FC<DialogueStreamProps> = ({
                   wordBreak: 'break-word',
                 }}
               >
+                {!isUser && msg.searchRecord && (
+                  <div
+                    style={{
+                      marginBottom: '10px',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      background: 'rgba(0, 242, 254, 0.08)',
+                      border: '1px solid rgba(0, 242, 254, 0.25)',
+                      fontSize: '0.78rem',
+                      color: 'var(--accent-cyan)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                      <Globe size={13} />
+                      <span>Đã tra cứu web: "{msg.searchRecord.query}" ({msg.searchRecord.source})</span>
+                    </div>
+                    {msg.searchRecord.snippets && msg.searchRecord.snippets.length > 0 && (
+                      <div
+                        style={{
+                          marginTop: '4px',
+                          color: 'var(--text-secondary)',
+                          fontSize: '0.74rem',
+                          fontStyle: 'italic',
+                          borderLeft: '2px solid rgba(0, 242, 254, 0.4)',
+                          paddingLeft: '8px',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        "{msg.searchRecord.snippets[0]}"
+                      </div>
+                    )}
+                  </div>
+                )}
                 {renderFormattedText(msg.text)}
                 {msg.isStreaming && <span className="cursor-caret" />}
               </div>
@@ -233,6 +294,29 @@ export const DialogueStream: React.FC<DialogueStreamProps> = ({
           </div>
         );
       })}
+
+      {currentSearch && (
+        <div
+          className="animate-pulse"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            borderRadius: '20px',
+            background: 'rgba(0, 242, 254, 0.1)',
+            border: '1px solid rgba(0, 242, 254, 0.35)',
+            color: 'var(--accent-cyan)',
+            fontSize: '0.82rem',
+            width: 'fit-content',
+            alignSelf: 'flex-start',
+            marginLeft: '48px',
+          }}
+        >
+          <Search size={14} className="animate-spin" />
+          <span>{currentSearch.message || `Đang tra cứu về "${currentSearch.query}" trên web...`}</span>
+        </div>
+      )}
 
       <div ref={bottomRef} />
     </div>

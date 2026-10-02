@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use super::types::MemoryImportance;
+use serde::{Deserialize, Serialize};
 
 /// Temporal tracking, access statistics, and decay/reinforcement lifecycle of a memory.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

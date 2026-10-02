@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use super::emotion::EmotionScore;
+use serde::{Deserialize, Serialize};
 
 /// Behavioral state — the character's current behavioral tendencies.
 ///

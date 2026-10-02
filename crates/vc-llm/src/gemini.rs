@@ -1,5 +1,5 @@
-use std::time::Duration;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 use crate::provider::{LlmError, LlmProvider, LlmRequest, LlmResponse, LlmUsage};
 
@@ -233,7 +233,9 @@ impl LlmProvider for GeminiProvider {
             attempts += 1;
             match self.agent.post(&url).send_json(&req_body) {
                 Ok(response) => break response,
-                Err(ureq::Error::Status(code, _resp)) if (code == 429 || code == 503) && attempts <= self.config.max_retries => {
+                Err(ureq::Error::Status(code, _resp))
+                    if (code == 429 || code == 503) && attempts <= self.config.max_retries =>
+                {
                     let backoff = Duration::from_millis(500 * (1 << (attempts - 1)));
                     std::thread::sleep(backoff);
                     continue;
@@ -266,9 +268,9 @@ impl LlmProvider for GeminiProvider {
             }
         };
 
-        let gemini_resp: GeminiGenerateResponse = res
-            .into_json()
-            .map_err(|e| vc_core::CoreError::ProviderError(format!("Failed to parse Gemini response: {e}")))?;
+        let gemini_resp: GeminiGenerateResponse = res.into_json().map_err(|e| {
+            vc_core::CoreError::ProviderError(format!("Failed to parse Gemini response: {e}"))
+        })?;
 
         if let Some(err) = gemini_resp.error {
             let msg = err.message;
@@ -334,7 +336,8 @@ mod tests {
 
     #[test]
     fn test_gemini_provider_with_custom_model() {
-        let provider = GeminiProvider::with_model("test-key-12345".into(), "gemini-3.5-flash".into());
+        let provider =
+            GeminiProvider::with_model("test-key-12345".into(), "gemini-3.5-flash".into());
         assert_eq!(provider.model(), "gemini-3.5-flash");
     }
 

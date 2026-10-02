@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::error::{CoreError, Result};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct Boundaries {
@@ -17,7 +17,9 @@ impl Boundaries {
     }
 
     pub fn should_preserve(&self, principle: &str) -> bool {
-        self.preserve.iter().any(|p| p.eq_ignore_ascii_case(principle))
+        self.preserve
+            .iter()
+            .any(|p| p.eq_ignore_ascii_case(principle))
     }
 
     pub fn validate(&self) -> Result<()> {

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, CornerDownLeft } from 'lucide-react';
+import { Send, CornerDownLeft, Mic, MicOff } from 'lucide-react';
 
 interface InputBarProps {
   onSendMessage: (text: string) => void;
@@ -8,7 +8,63 @@ interface InputBarProps {
 
 export const InputBar: React.FC<InputBarProps> = ({ onSendMessage, disabled }) => {
   const [input, setInput] = useState('');
+  const [isListening, setIsListening] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const recognitionRef = useRef<any>(null);
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert('Trình duyệt của bạn chưa hỗ trợ nhận diện giọng nói. Hãy mở ứng dụng trên Google Chrome hoặc Microsoft Edge nhé!');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'vi-VN';
+      recognition.interimResults = true;
+      recognition.continuous = false;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        setInput(transcript);
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto';
+          textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 140)}px`;
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn('Speech recognition error:', event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.warn('Speech recognition start failed:', err);
+      setIsListening(false);
+    }
+  };
 
   const handleSend = () => {
     const trimmed = input.trim();
@@ -72,7 +128,13 @@ export const InputBar: React.FC<InputBarProps> = ({ onSendMessage, disabled }) =
           value={input}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder={disabled ? 'Aria đang trả lời...' : 'Gửi lời nhắn hoặc chia sẻ tâm sự cùng Aria... (Enter để gửi)'}
+          placeholder={
+            isListening
+              ? '🎙️ Đang lắng nghe giọng bạn nói... (nói xong bấm nút mic hoặc Enter để gửi)'
+              : disabled
+              ? 'Aria đang trả lời...'
+              : 'Gửi lời nhắn hoặc chia sẻ tâm sự cùng Aria... (Enter để gửi)'
+          }
           disabled={disabled}
           style={{
             flex: 1,
@@ -90,6 +152,32 @@ export const InputBar: React.FC<InputBarProps> = ({ onSendMessage, disabled }) =
         />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Voice Microphone Input Button */}
+          <button
+            type="button"
+            onClick={toggleListening}
+            title={isListening ? 'Dừng lắng nghe' : 'Nói chuyện bằng giọng nói tiếng Việt (Click để nói)'}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '38px',
+              height: '38px',
+              borderRadius: 'var(--radius-sm)',
+              background: isListening
+                ? 'linear-gradient(135deg, var(--accent-rose), var(--accent-amber))'
+                : 'rgba(255, 255, 255, 0.06)',
+              color: isListening ? '#ffffff' : 'var(--accent-cyan)',
+              border: isListening ? '1px solid var(--accent-rose)' : '1px solid var(--border-subtle)',
+              cursor: 'pointer',
+              transition: 'all var(--transition-smooth)',
+              boxShadow: isListening ? '0 0 20px rgba(255, 65, 108, 0.5)' : 'none',
+            }}
+          >
+            {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+          </button>
+
+          {/* Send Button */}
           <button
             onClick={handleSend}
             disabled={!canSend}

@@ -275,7 +275,8 @@ mod tests {
         rel.add_known_fact("Prefers Rust over Python");
 
         let json = serde_json::to_string(&rel).expect("Serialization failed");
-        let deserialized: Relationship = serde_json::from_str(&json).expect("Deserialization failed");
+        let deserialized: Relationship =
+            serde_json::from_str(&json).expect("Deserialization failed");
 
         assert_eq!(rel.id, deserialized.id);
         assert_eq!(rel.target_id, deserialized.target_id);

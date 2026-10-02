@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
 use crate::error::{CoreError, Result};
 use crate::personality::behavior::TendencyLevel;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PersonalityGoal {
@@ -10,7 +10,11 @@ pub struct PersonalityGoal {
 }
 
 impl PersonalityGoal {
-    pub fn new(id: impl Into<String>, description: impl Into<String>, priority: TendencyLevel) -> Self {
+    pub fn new(
+        id: impl Into<String>,
+        description: impl Into<String>,
+        priority: TendencyLevel,
+    ) -> Self {
         Self {
             id: id.into(),
             description: description.into(),
@@ -23,7 +27,9 @@ impl PersonalityGoal {
             return Err(CoreError::ValidationError("Goal id cannot be empty".into()));
         }
         if self.description.trim().is_empty() {
-            return Err(CoreError::ValidationError("Goal description cannot be empty".into()));
+            return Err(CoreError::ValidationError(
+                "Goal description cannot be empty".into(),
+            ));
         }
         Ok(())
     }

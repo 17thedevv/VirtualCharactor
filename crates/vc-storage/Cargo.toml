@@ -5,3 +5,13 @@ edition = "2021"
 
 [dependencies]
 vc-core = { path = "../vc-core" }
+rusqlite = { version = "0.32", features = ["bundled"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.8", features = ["v4", "serde"] }
+parking_lot = "0.12"
+fastembed = { version = "7.1.0", optional = true }
+
+[features]
+default = []
+local-fastembed = ["dep:fastembed"]

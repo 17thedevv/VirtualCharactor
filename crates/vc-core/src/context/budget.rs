@@ -55,7 +55,8 @@ impl ContextBudget {
         let state = (total_tokens as f32 * 0.08).round() as usize;
         let relationship = (total_tokens as f32 * 0.08).round() as usize;
         let memory = (total_tokens as f32 * 0.25).round() as usize;
-        let dialogue = total_tokens.saturating_sub(system + personality + state + relationship + memory);
+        let dialogue =
+            total_tokens.saturating_sub(system + personality + state + relationship + memory);
 
         Self {
             total_tokens,

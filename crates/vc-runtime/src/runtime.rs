@@ -79,11 +79,8 @@ impl RuntimeEngine {
         let query = vc_core::memory::MemoryQuery::new(3)
             .with_actor(actor_id)
             .with_text(user_input);
-        let retrieved_memories = crate::in_memory_store::InMemoryMemoryStore::retrieve_from_slice(
-            memories,
-            &query,
-            now,
-        );
+        let retrieved_memories =
+            crate::in_memory_store::InMemoryMemoryStore::retrieve_from_slice(memories, &query, now);
 
         // 3. Context Construction & Budget Governance (Skill 16)
         let context = vc_core::context::ContextBuilder::new()
@@ -108,7 +105,10 @@ impl RuntimeEngine {
 
         // 5. Response Generation via LLM
         let policy_str = if let Some(ref p) = decision.result.policy {
-            format!("Giọng điệu: {}, Độ súc tích: {:.1}, Tính chủ động: {:.1}", p.tone, p.verbosity, p.initiative)
+            format!(
+                "Giọng điệu: {}, Độ súc tích: {:.1}, Tính chủ động: {:.1}",
+                p.tone, p.verbosity, p.initiative
+            )
         } else {
             "Tự nhiên, ấm áp".to_string()
         };
@@ -130,7 +130,9 @@ impl RuntimeEngine {
         let response_text = response.text;
 
         // 6. Emotion / State Feedback Update (EmotionEngine)
-        let emotion_delta = self.emotion_engine.evaluate(&state.emotion, user_input, personality);
+        let emotion_delta = self
+            .emotion_engine
+            .evaluate(&state.emotion, user_input, personality);
         state.emotion.apply_delta(&emotion_delta);
         state.sync_behavior(personality);
 

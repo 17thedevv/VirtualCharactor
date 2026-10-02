@@ -69,35 +69,91 @@ impl Context {
         }
 
         if !system_items.is_empty() {
-            sections.push(format!("[Chỉ Thị Cốt Lõi Hệ Thống]:\n{}", system_items.iter().map(|s| format!("- {}", s)).collect::<Vec<_>>().join("\n")));
+            sections.push(format!(
+                "[Chỉ Thị Cốt Lõi Hệ Thống]:\n{}",
+                system_items
+                    .iter()
+                    .map(|s| format!("- {}", s))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            ));
         }
 
         if !persona_items.is_empty() {
-            sections.push(format!("[Bản Sắc & Tính Cách Cốt Lõi]:\n{}", persona_items.iter().map(|s| format!("- {}", s)).collect::<Vec<_>>().join("\n")));
+            sections.push(format!(
+                "[Bản Sắc & Tính Cách Cốt Lõi]:\n{}",
+                persona_items
+                    .iter()
+                    .map(|s| format!("- {}", s))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            ));
         }
 
         if !state_items.is_empty() {
-            sections.push(format!("[Trạng Thái Cảm Xúc & Nhận Thức]:\n{}", state_items.iter().map(|s| format!("- {}", s)).collect::<Vec<_>>().join("\n")));
+            sections.push(format!(
+                "[Trạng Thái Cảm Xúc & Nhận Thức]:\n{}",
+                state_items
+                    .iter()
+                    .map(|s| format!("- {}", s))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            ));
         }
 
         if !rel_items.is_empty() {
-            sections.push(format!("[Mối Quan Hệ & Gắn Kết]:\n{}", rel_items.iter().map(|s| format!("- {}", s)).collect::<Vec<_>>().join("\n")));
+            sections.push(format!(
+                "[Mối Quan Hệ & Gắn Kết]:\n{}",
+                rel_items
+                    .iter()
+                    .map(|s| format!("- {}", s))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            ));
         }
 
         if !memory_items.is_empty() {
-            sections.push(format!("[Ký Ức Liên Quan Gần Đây]:\n{}", memory_items.iter().map(|s| format!("- {}", s)).collect::<Vec<_>>().join("\n")));
+            sections.push(format!(
+                "[Ký Ức Liên Quan Gần Đây]:\n{}",
+                memory_items
+                    .iter()
+                    .map(|s| format!("- {}", s))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            ));
         }
 
         if !conv_items.is_empty() {
-            sections.push(format!("[Lịch Sử Hội Thoại Gần Nhất]:\n{}", conv_items.iter().map(|s| format!("* {}", s)).collect::<Vec<_>>().join("\n")));
+            sections.push(format!(
+                "[Lịch Sử Hội Thoại Gần Nhất]:\n{}",
+                conv_items
+                    .iter()
+                    .map(|s| format!("* {}", s))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            ));
         }
 
         if !other_items.is_empty() {
-            sections.push(format!("[Bối Cảnh Bổ Sung]:\n{}", other_items.iter().map(|s| format!("- {}", s)).collect::<Vec<_>>().join("\n")));
+            sections.push(format!(
+                "[Bối Cảnh Bổ Sung]:\n{}",
+                other_items
+                    .iter()
+                    .map(|s| format!("- {}", s))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            ));
         }
 
         if !user_items.is_empty() {
-            sections.push(format!("[Lời Nhắn Từ Người Bạn]:\n{}", user_items.iter().map(|s| s.as_str()).collect::<Vec<_>>().join("\n")));
+            sections.push(format!(
+                "[Lời Nhắn Từ Người Bạn]:\n{}",
+                user_items
+                    .iter()
+                    .map(|s| s.as_str())
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            ));
         }
 
         sections.join("\n\n")
@@ -116,10 +172,16 @@ mod tests {
     fn test_full_context_builder_pipeline() {
         let personality = Personality::baseline_aria();
         let state = CharacterState::default_aria();
-        let rel = Relationship::new_companion(crate::character::CharacterId(personality.id.0), "user-1");
+        let rel =
+            Relationship::new_companion(crate::character::CharacterId(personality.id.0), "user-1");
         let memories = vec![
             Memory::new_core("Core awakened memory", 1000),
-            Memory::new_semantic("User likes clean code", MemoryImportance::High, Some("user-1".into()), 1001),
+            Memory::new_semantic(
+                "User likes clean code",
+                MemoryImportance::High,
+                Some("user-1".into()),
+                1001,
+            ),
         ];
 
         let context = ContextBuilder::new()
@@ -144,13 +206,16 @@ mod tests {
 
     #[test]
     fn test_context_serialization_roundtrip() {
-        let items = vec![
-            ContextItem::new(ContextSource::User, "Hello", ContextPriority::Critical),
-        ];
+        let items = vec![ContextItem::new(
+            ContextSource::User,
+            "Hello",
+            ContextPriority::Critical,
+        )];
         let ctx = Context::new(items);
 
         let json = serde_json::to_string(&ctx).expect("Serialization should succeed");
-        let deserialized: Context = serde_json::from_str(&json).expect("Deserialization should succeed");
+        let deserialized: Context =
+            serde_json::from_str(&json).expect("Deserialization should succeed");
 
         assert_eq!(ctx.items.len(), deserialized.items.len());
         assert_eq!(ctx.total_tokens, deserialized.total_tokens);

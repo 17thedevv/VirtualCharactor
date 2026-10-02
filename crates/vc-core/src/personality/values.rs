@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::error::{CoreError, Result};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct ValueScore(f32);
@@ -52,7 +52,11 @@ pub struct ValueItem {
 }
 
 impl ValueItem {
-    pub fn new(name: impl Into<String>, importance: ValueScore, description: Option<String>) -> Self {
+    pub fn new(
+        name: impl Into<String>,
+        importance: ValueScore,
+        description: Option<String>,
+    ) -> Self {
         Self {
             name: name.into(),
             importance,
@@ -62,7 +66,9 @@ impl ValueItem {
 
     pub fn validate(&self) -> Result<()> {
         if self.name.trim().is_empty() {
-            return Err(CoreError::ValidationError("Value name cannot be empty".into()));
+            return Err(CoreError::ValidationError(
+                "Value name cannot be empty".into(),
+            ));
         }
         self.importance.validate()?;
         Ok(())

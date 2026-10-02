@@ -31,9 +31,27 @@ impl RuleBasedEmotionEngine {
             // Joy / Happiness
             KeywordRule {
                 keywords: vec![
-                    "vui", "tuyệt", "hay", "thích", "yêu", "tốt", "giỏi", "xuất sắc",
-                    "happy", "great", "awesome", "love", "wonderful", "amazing", "excited",
-                    "haha", "hihi", "😊", "😄", "❤️", "🎉",
+                    "vui",
+                    "tuyệt",
+                    "hay",
+                    "thích",
+                    "yêu",
+                    "tốt",
+                    "giỏi",
+                    "xuất sắc",
+                    "happy",
+                    "great",
+                    "awesome",
+                    "love",
+                    "wonderful",
+                    "amazing",
+                    "excited",
+                    "haha",
+                    "hihi",
+                    "😊",
+                    "😄",
+                    "❤️",
+                    "🎉",
                 ],
                 base_delta: EmotionDelta {
                     joy: 0.20,
@@ -47,14 +65,28 @@ impl RuleBasedEmotionEngine {
             // Sadness / Tiredness
             KeywordRule {
                 keywords: vec![
-                    "buồn", "mệt", "chán", "cô đơn", "khóc", "thất vọng", "đau",
-                    "sad", "tired", "lonely", "cry", "disappointed", "pain", "hurt",
-                    "😢", "😭", "💔",
+                    "buồn",
+                    "mệt",
+                    "chán",
+                    "cô đơn",
+                    "khóc",
+                    "thất vọng",
+                    "đau",
+                    "sad",
+                    "tired",
+                    "lonely",
+                    "cry",
+                    "disappointed",
+                    "pain",
+                    "hurt",
+                    "😢",
+                    "😭",
+                    "💔",
                 ],
                 base_delta: EmotionDelta {
                     joy: -0.10,
                     sadness: 0.25,
-                    affection: 0.08,  // Empathic response
+                    affection: 0.08, // Empathic response
                     embarrassment: 0.02,
                     ..EmotionDelta::zero()
                 },
@@ -62,9 +94,19 @@ impl RuleBasedEmotionEngine {
             // Anger / Frustration
             KeywordRule {
                 keywords: vec![
-                    "tức", "giận", "bực", "ghét", "khó chịu", "ức",
-                    "angry", "hate", "annoyed", "frustrated", "furious",
-                    "😡", "🤬",
+                    "tức",
+                    "giận",
+                    "bực",
+                    "ghét",
+                    "khó chịu",
+                    "ức",
+                    "angry",
+                    "hate",
+                    "annoyed",
+                    "frustrated",
+                    "furious",
+                    "😡",
+                    "🤬",
                 ],
                 base_delta: EmotionDelta {
                     anger: 0.20,
@@ -77,9 +119,19 @@ impl RuleBasedEmotionEngine {
             // Fear / Worry
             KeywordRule {
                 keywords: vec![
-                    "sợ", "lo", "bất an", "hoang mang", "kinh", "hãi",
-                    "afraid", "scared", "worried", "anxious", "fear",
-                    "😨", "😰",
+                    "sợ",
+                    "lo",
+                    "bất an",
+                    "hoang mang",
+                    "kinh",
+                    "hãi",
+                    "afraid",
+                    "scared",
+                    "worried",
+                    "anxious",
+                    "fear",
+                    "😨",
+                    "😰",
                 ],
                 base_delta: EmotionDelta {
                     fear: 0.20,
@@ -92,9 +144,19 @@ impl RuleBasedEmotionEngine {
             // Surprise
             KeywordRule {
                 keywords: vec![
-                    "bất ngờ", "ngạc nhiên", "wow", "whoa", "sao lại", "thật sao",
-                    "surprised", "unexpected", "unbelievable", "no way",
-                    "😱", "😲", "🤯",
+                    "bất ngờ",
+                    "ngạc nhiên",
+                    "wow",
+                    "whoa",
+                    "sao lại",
+                    "thật sao",
+                    "surprised",
+                    "unexpected",
+                    "unbelievable",
+                    "no way",
+                    "😱",
+                    "😲",
+                    "🤯",
                 ],
                 base_delta: EmotionDelta {
                     surprise: 0.30,
@@ -105,9 +167,21 @@ impl RuleBasedEmotionEngine {
             // Curiosity / Questioning
             KeywordRule {
                 keywords: vec![
-                    "tại sao", "như thế nào", "là gì", "thế nào", "giải thích",
-                    "tò mò", "muốn biết", "hỏi",
-                    "why", "how", "what", "explain", "curious", "wonder", "tell me",
+                    "tại sao",
+                    "như thế nào",
+                    "là gì",
+                    "thế nào",
+                    "giải thích",
+                    "tò mò",
+                    "muốn biết",
+                    "hỏi",
+                    "why",
+                    "how",
+                    "what",
+                    "explain",
+                    "curious",
+                    "wonder",
+                    "tell me",
                     "🤔",
                 ],
                 base_delta: EmotionDelta {
@@ -120,9 +194,21 @@ impl RuleBasedEmotionEngine {
             // Affection / Closeness
             KeywordRule {
                 keywords: vec![
-                    "nhớ", "quan tâm", "ôm", "thương", "gần gũi", "bên cạnh",
-                    "miss", "care", "hug", "close", "together", "appreciate",
-                    "🤗", "💕", "💗",
+                    "nhớ",
+                    "quan tâm",
+                    "ôm",
+                    "thương",
+                    "gần gũi",
+                    "bên cạnh",
+                    "miss",
+                    "care",
+                    "hug",
+                    "close",
+                    "together",
+                    "appreciate",
+                    "🤗",
+                    "💕",
+                    "💗",
                 ],
                 base_delta: EmotionDelta {
                     affection: 0.25,
@@ -134,9 +220,17 @@ impl RuleBasedEmotionEngine {
             // Embarrassment
             KeywordRule {
                 keywords: vec![
-                    "xấu hổ", "ngại", "ngượng", "mắc cỡ", "quê",
-                    "embarrassed", "shy", "awkward", "blush",
-                    "😳", "🙈",
+                    "xấu hổ",
+                    "ngại",
+                    "ngượng",
+                    "mắc cỡ",
+                    "quê",
+                    "embarrassed",
+                    "shy",
+                    "awkward",
+                    "blush",
+                    "😳",
+                    "🙈",
                 ],
                 base_delta: EmotionDelta {
                     embarrassment: 0.25,
@@ -147,10 +241,7 @@ impl RuleBasedEmotionEngine {
             },
             // Greeting (mild positive)
             KeywordRule {
-                keywords: vec![
-                    "chào", "hello", "hi", "xin chào", "hey",
-                    "👋",
-                ],
+                keywords: vec!["chào", "hello", "hi", "xin chào", "hey", "👋"],
                 base_delta: EmotionDelta {
                     joy: 0.10,
                     curiosity: 0.15,
@@ -178,7 +269,8 @@ impl RuleBasedEmotionEngine {
             fear: delta.fear * 0.8,
             surprise: delta.surprise * 0.9,
             affection: delta.affection * (0.6 + empathy * 0.8),
-            embarrassment: delta.embarrassment * (0.5 + (1.0 - personality.traits.assertiveness.value()) * 0.5),
+            embarrassment: delta.embarrassment
+                * (0.5 + (1.0 - personality.traits.assertiveness.value()) * 0.5),
             curiosity: delta.curiosity * (0.6 + curiosity * 0.8),
         }
     }
@@ -284,7 +376,10 @@ mod tests {
         let personality = test_personality();
 
         let delta = engine.evaluate(&state, "Hôm nay mình rất vui!", &personality);
-        assert!(delta.joy > 0.0, "Joy delta should be positive for happy input");
+        assert!(
+            delta.joy > 0.0,
+            "Joy delta should be positive for happy input"
+        );
     }
 
     #[test]
@@ -315,7 +410,10 @@ mod tests {
         let personality = test_personality();
 
         let delta = engine.evaluate(&state, "Tại sao bầu trời lại xanh?", &personality);
-        assert!(delta.curiosity > 0.0, "Curiosity should increase for questions");
+        assert!(
+            delta.curiosity > 0.0,
+            "Curiosity should increase for questions"
+        );
     }
 
     #[test]
@@ -326,7 +424,10 @@ mod tests {
 
         let delta = engine.evaluate(&state, "Chào Aria!", &personality);
         assert!(delta.joy > 0.0, "Joy should increase for greetings");
-        assert!(delta.curiosity > 0.0, "Curiosity should increase for greetings");
+        assert!(
+            delta.curiosity > 0.0,
+            "Curiosity should increase for greetings"
+        );
     }
 
     #[test]
@@ -336,7 +437,10 @@ mod tests {
         let personality = test_personality();
 
         let delta = engine.evaluate(&state, "abc xyz 123", &personality);
-        assert!(!delta.is_zero(), "Even unrecognized input should produce some delta");
+        assert!(
+            !delta.is_zero(),
+            "Even unrecognized input should produce some delta"
+        );
         assert!(delta.curiosity > 0.0, "Default should bump curiosity");
     }
 
@@ -348,7 +452,10 @@ mod tests {
 
         let delta = engine.evaluate(&state, "Mình nhớ bạn quá", &personality);
         // Aria has high empathy (0.88), so affection should be amplified
-        assert!(delta.affection > 0.15, "High empathy should amplify affection delta");
+        assert!(
+            delta.affection > 0.15,
+            "High empathy should amplify affection delta"
+        );
     }
 
     #[test]

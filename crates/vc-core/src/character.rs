@@ -20,7 +20,7 @@ impl Default for CharacterId {
 pub struct Character {
     pub id: CharacterId,
     pub name: String,
-    // Note: Dependencies to personality/state/memory are conceptual 
-    // and might be accessed via IDs in a full implementation, 
+    // Note: Dependencies to personality/state/memory are conceptual
+    // and might be accessed via IDs in a full implementation,
     // but we define them here to form the aggregate root conceptually.
 }
