@@ -24,6 +24,12 @@ pub enum ActionType {
     ActiveListening,
     /// Politely refuse or protect core safety/ethical boundaries
     RefusalOrBoundary,
+    /// Proactively initiate interaction after silence or user idle (Phase 2B)
+    AutonomousInitiative,
+    /// Naturally observe and remark on the user's ongoing desktop activity or environment
+    AmbientObservation,
+    /// Intentionally maintain gentle presence without speaking / non-intrusive companionship
+    QuietCompanionship,
     /// Custom domain action
     Custom(String),
 }
@@ -40,6 +46,9 @@ impl ActionType {
             Self::GentleBanter => "gentle_banter",
             Self::ActiveListening => "active_listening",
             Self::RefusalOrBoundary => "refusal_or_boundary",
+            Self::AutonomousInitiative => "autonomous_initiative",
+            Self::AmbientObservation => "ambient_observation",
+            Self::QuietCompanionship => "quiet_companionship",
             Self::Custom(s) => s.as_str(),
         }
     }
@@ -63,6 +72,9 @@ impl From<&str> for ActionType {
             "gentle_banter" => Self::GentleBanter,
             "active_listening" => Self::ActiveListening,
             "refusal_or_boundary" => Self::RefusalOrBoundary,
+            "autonomous_initiative" => Self::AutonomousInitiative,
+            "ambient_observation" => Self::AmbientObservation,
+            "quiet_companionship" => Self::QuietCompanionship,
             other => Self::Custom(other.to_string()),
         }
     }

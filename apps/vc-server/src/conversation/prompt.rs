@@ -137,10 +137,14 @@ pub fn build_companion_llm_request(
     };
 
     let policy_guidelines = if let Some(p) = policy {
-        format!(
+        let mut guide = format!(
             "- Định hướng phong cách hành vi: Giọng điệu {}, thân mật, tự nhiên.\n",
             p.tone
-        )
+        );
+        if let Some(ref pg) = p.pronoun_guideline {
+            guide.push_str(&format!("- Quy chuẩn xưng hô & sắc thái: {}\n", pg));
+        }
+        guide
     } else {
         String::new()
     };

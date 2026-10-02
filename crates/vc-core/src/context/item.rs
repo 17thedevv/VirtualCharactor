@@ -48,6 +48,8 @@ pub enum ContextSource {
     Situation,
     /// Ambient environment or simulator metadata
     Environment,
+    /// Retrieved RAG knowledge chunks (lore, episodic archives)
+    Knowledge,
     /// Custom extension source
     Custom(String),
 }
@@ -64,6 +66,7 @@ impl ContextSource {
             Self::Conversation => "conversation",
             Self::Situation => "situation",
             Self::Environment => "environment",
+            Self::Knowledge => "knowledge",
             Self::Custom(s) => s.as_str(),
         }
     }

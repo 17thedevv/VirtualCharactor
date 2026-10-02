@@ -51,6 +51,7 @@ impl Context {
         let mut state_items = Vec::new();
         let mut rel_items = Vec::new();
         let mut memory_items = Vec::new();
+        let mut knowledge_items = Vec::new();
         let mut conv_items = Vec::new();
         let mut user_items = Vec::new();
         let mut other_items = Vec::new();
@@ -62,6 +63,7 @@ impl Context {
                 ContextSource::State => state_items.push(&item.content),
                 ContextSource::Relationship => rel_items.push(&item.content),
                 ContextSource::Memory => memory_items.push(&item.content),
+                ContextSource::Knowledge => knowledge_items.push(&item.content),
                 ContextSource::Conversation => conv_items.push(&item.content),
                 ContextSource::User => user_items.push(&item.content),
                 _ => other_items.push(&item.content),
@@ -118,6 +120,17 @@ impl Context {
                 memory_items
                     .iter()
                     .map(|s| format!("- {}", s))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            ));
+        }
+
+        if !knowledge_items.is_empty() {
+            sections.push(format!(
+                "[Kiến Thức & Ký Ức Truy Hồi (RAG)]:\n{}",
+                knowledge_items
+                    .iter()
+                    .map(|s| format!("  - {}", s))
                     .collect::<Vec<_>>()
                     .join("\n")
             ));

@@ -297,12 +297,15 @@ pub async fn process_user_interaction(
 
     // 6. Context Assembly
     let personality = state.personality.read().await.clone();
+    let world = state.world_state.read().await.clone();
     let assembled_context = ContextBuilder::new()
         .with_system_directive("You are Aria, an independent living virtual companion.")
         .with_personality(personality.clone())
         .with_state(char_state.clone())
         .with_relationship(rel.clone())
         .with_memories(retrieved_memories.clone())
+        .with_rag_chunks(&rag_chunks)
+        .with_world(&world)
         .with_user_input(&user_input)
         .build(ContextBudget::standard_4k());
 
@@ -316,6 +319,7 @@ pub async fn process_user_interaction(
                 "breakdown": {
                     "personality_tokens": assembled_context.breakdown.personality_tokens,
                     "memory_tokens": assembled_context.breakdown.memory_tokens,
+                    "knowledge_tokens": assembled_context.breakdown.knowledge_tokens,
                     "state_tokens": assembled_context.breakdown.state_tokens,
                     "relationship_tokens": assembled_context.breakdown.relationship_tokens,
                     "user_input_tokens": assembled_context.breakdown.user_tokens,
@@ -336,7 +340,8 @@ pub async fn process_user_interaction(
         char_state.clone(),
         Some(rel.clone()),
         retrieved_memories.clone(),
-    );
+    )
+    .with_world(world);
 
     let decision = state
         .decision_engine
@@ -458,6 +463,26 @@ pub async fn process_user_interaction(
                 char_state_mut.emotion.decay(5);
                 char_state_mut.sync_behavior(&personality);
                 char_state_mut.session.increment_turn();
+                if char_state_mut.session.turn_count % 10 == 0 {
+                    if let Ok(report) =
+                        state.run_memory_consolidation(char_id, chrono_now_secs(), 3600)
+                    {
+                        if report.memories_decayed > 0 || report.memories_pruned > 0 {
+                            println!(
+                                "🧠 [CONSOLIDATION] Memory cycle: {} scanned, {} decayed, {} pruned",
+                                report.memories_scanned, report.memories_decayed, report.memories_pruned
+                            );
+                        }
+                    }
+                }
+                char_state_mut
+                    .cognition
+                    .update_topic(summarize_snippet(&user_input));
+                char_state_mut.cognition.set_attention(0.85);
+                char_state_mut.cognition.set_focus(0.80);
+
+                let mut world_mut = state.world_state.write().await;
+                world_mut.record_speech(chrono_now_secs());
 
                 let mut rel_mut = state.relationship.write().await;
                 let rel_transition = RelationshipTransition {

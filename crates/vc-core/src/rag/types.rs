@@ -246,6 +246,24 @@ pub struct RagQueryResult {
     pub final_score: f32,
 }
 
+impl RagQueryResult {
+    pub fn new(
+        chunk: DocumentChunk,
+        dense_score: Option<f32>,
+        sparse_score: Option<f32>,
+        rrf_score: Option<f32>,
+        final_score: f32,
+    ) -> Self {
+        Self {
+            chunk,
+            dense_score,
+            sparse_score,
+            rrf_score,
+            final_score,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

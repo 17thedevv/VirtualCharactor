@@ -1,9 +1,9 @@
 # BÁO CÁO TRẠNG THÁI DỰ ÁN (PROJECT STATUS)
 
 > **Cập nhật gần nhất:** Tháng 10/2026  
-> **Trạng thái tổng thể:** **BƯỚC 1.8 (KIẾN TRÚC RAG DATABASE & RETRIEVAL) HOÀN TẤT (100% HEALTHY)**  
-> **Tổng số bài kiểm thử:** **255 / 255 PASSED** (0 failed, 0 ignored)  
-> **Kiến trúc:** Local-First, Zero-Cloud dependency, Clean Architecture (Rust Core + Hybrid RAG + Axum + React 18 VRM).
+> **Trạng thái tổng thể:** **BƯỚC 1.8 & 1.9 (CORE UNIFICATION & POLISH) HOÀN TẤT (100% HEALTHY)**  
+> **Tổng số bài kiểm thử:** **256 / 256 PASSED** (0 failed, 0 ignored)  
+> **Kiến trúc:** Local-First, Zero-Cloud dependency, Clean Architecture (Rust Core + Hybrid RAG + Unified Context + Axum + React 18 VRM).
 
 ---
 
@@ -19,13 +19,13 @@ Tất cả các crate trong workspace Rust đều được biên dịch và ki�
 
 | Crate / Module | Số lượng Test | Kết quả | Mô tả |
 | :--- | :---: | :---: | :--- |
-| **`crates/vc-core`** | 77 tests | ✅ PASSED | Domain Core: Personality, Emotion, State, Memory, Context, Decision & RAG Domain Types |
+| **`crates/vc-core`** | 78 tests | ✅ PASSED | Domain Core: Personality, Emotion, State, Memory, Context, Decision, RAG & World State |
 | **`crates/vc-llm`** | 27 tests | ✅ PASSED | Ollama Client, Embedding Provider, Real Streaming E2E, Gemini API, Mock Provider |
 | **`crates/vc-runtime`** | 140 tests | ✅ PASSED | Conversation FSM, Audio Chunker, SAPI TTS, Whisper STT, Vision, Attention & RAG Indexer/Archiver |
 | **`crates/vc-storage`** | 11 tests | ✅ PASSED | SQLite Persistence, Semantic Vector Search & Hybrid RAG (Dense Cosine + FTS5 Sparse Keywords) |
-| **`apps/vc-server`** | 0 tests | ✅ OK | Axum WebSocket Gateway, RAG Knowledge Injection & Realtime Streaming Pipeline |
+| **`apps/vc-server`** | 0 tests | ✅ OK | Axum WebSocket Gateway, RAG Knowledge Injection, World Sensing & Realtime Streaming |
 | **`apps/vc-cli`** | 0 tests | ✅ OK | Native Windows CLI tool |
-| **TỔNG CỘNG** | **255 tests** | **100% PASS** | **Không có lỗi hồi quy (No regression)** |
+| **TỔNG CỘNG** | **256 tests** | **100% PASS** | **Không có lỗi hồi quy (No regression)** |
 
 - `cargo check --workspace`: **0 error, 0 warning**.
 - `cargo fmt --all -- --check`: **100% tuân thủ chuẩn formatting**.

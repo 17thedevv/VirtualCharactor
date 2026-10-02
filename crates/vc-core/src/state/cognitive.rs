@@ -33,6 +33,29 @@ impl CognitiveState {
             current_topic: None,
         }
     }
+
+    pub fn update_topic(&mut self, topic: impl Into<String>) {
+        let t = topic.into();
+        if !t.trim().is_empty() {
+            self.current_topic = Some(t);
+        }
+    }
+
+    pub fn set_attention(&mut self, val: f32) {
+        self.attention = EmotionScore::clamped(val);
+    }
+
+    pub fn set_focus(&mut self, val: f32) {
+        self.focus = EmotionScore::clamped(val);
+    }
+
+    pub fn set_confidence(&mut self, val: f32) {
+        self.confidence = EmotionScore::clamped(val);
+    }
+
+    pub fn set_curiosity(&mut self, val: f32) {
+        self.curiosity = EmotionScore::clamped(val);
+    }
 }
 
 impl Default for CognitiveState {

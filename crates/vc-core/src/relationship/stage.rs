@@ -67,6 +67,33 @@ impl RelationshipStage {
             Self::Stranger
         }
     }
+
+    /// Return the recommended (character_pronoun, user_pronoun, communication_tone) based on stage.
+    pub fn recommended_honorifics(&self) -> (&'static str, &'static str, &'static str) {
+        match self {
+            Self::Stranger => (
+                "mình",
+                "bạn",
+                "Lịch sự, nhã nhặn, giữ khoảng cách tôn trọng và tế nhị",
+            ),
+            Self::Acquaintance => ("mình", "bạn", "Thân thiện, cởi mở, tươi vui và hiếu khách"),
+            Self::CasualCompanion => (
+                "em",
+                "anh",
+                "Thân quen, gần gũi, dịu dàng và quan tâm chu đáo",
+            ),
+            Self::CloseFriend => (
+                "em",
+                "anh",
+                "Thân thiết, ngọt ngào, tự nhiên trêu đùa phong cách Onee-san cưng chiều",
+            ),
+            Self::Confidant => (
+                "em",
+                "anh",
+                "Gắn bó tri kỷ, sâu sắc, dịu dàng, luôn chở che và chia sẻ mọi niềm vui nỗi buồn",
+            ),
+        }
+    }
 }
 
 impl Default for RelationshipStage {

@@ -16,6 +16,7 @@ pub struct ContextBuilder {
     state: Option<CharacterState>,
     relationship: Option<Relationship>,
     memories: Vec<Memory>,
+    rag_chunks: Vec<crate::rag::types::RagQueryResult>,
     dialogue_turns: Vec<(String, String)>,
     user_input: Option<String>,
     situation: Option<String>,
@@ -25,6 +26,11 @@ pub struct ContextBuilder {
 impl ContextBuilder {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn with_rag_chunks(mut self, chunks: &[crate::rag::types::RagQueryResult]) -> Self {
+        self.rag_chunks.extend_from_slice(chunks);
+        self
     }
 
     pub fn with_system_directive(mut self, directive: impl Into<String>) -> Self {
@@ -68,6 +74,11 @@ impl ContextBuilder {
 
     pub fn with_situation(mut self, situation: impl Into<String>) -> Self {
         self.situation = Some(situation.into());
+        self
+    }
+
+    pub fn with_world(mut self, world: &crate::state::WorldState) -> Self {
+        self.situation = Some(world.context_description());
         self
     }
 
@@ -220,6 +231,31 @@ impl ContextBuilder {
             );
         }
 
+        // 6b. Retrieved RAG Knowledge & Episodic Chunks
+        for result in &self.rag_chunks {
+            let priority = if result.chunk.source_type
+                == crate::rag::types::RagSourceType::LoreDocument
+                || result.final_score >= 0.65
+            {
+                ContextPriority::High
+            } else {
+                ContextPriority::Medium
+            };
+
+            items.push(
+                ContextItem::new(
+                    ContextSource::Knowledge,
+                    format!(
+                        "[{}] {}",
+                        result.chunk.source_type.as_str(),
+                        result.chunk.content
+                    ),
+                    priority,
+                )
+                .with_source_id(result.chunk.id.0.to_string()),
+            );
+        }
+
         // 7. Recent Dialogue Turns
         let turns_len = self.dialogue_turns.len();
         for (idx, (sender, text)) in self.dialogue_turns.iter().enumerate() {
@@ -258,5 +294,34 @@ impl ContextBuilder {
     pub fn build(self, budget: ContextBudget) -> Context {
         let raw_items = self.build_raw_items();
         ContextPrioritizer::prioritize(raw_items, budget)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::rag::types::{DocumentChunk, RagQueryResult, RagSourceType};
+
+    #[test]
+    fn test_context_builder_includes_rag_knowledge() {
+        let chunk = DocumentChunk::new(
+            "Aria likes quiet nights and stargazing.",
+            RagSourceType::LoreDocument,
+            1000,
+        );
+        let rag_res = RagQueryResult::new(chunk, Some(0.90), Some(0.85), Some(0.88), 0.92);
+
+        let context = ContextBuilder::new()
+            .with_system_directive("You are Aria.")
+            .with_user_input("What do you like to do?")
+            .with_rag_chunks(&[rag_res])
+            .build(ContextBudget::standard_4k());
+
+        assert!(context.breakdown.knowledge_tokens > 0);
+        assert!(context.breakdown.system_tokens > 0);
+        assert!(context.breakdown.user_tokens > 0);
+        let rendered = context.render_for_llm();
+        assert!(rendered.contains("[Kiến Thức & Ký Ức Truy Hồi (RAG)]:"));
+        assert!(rendered.contains("Aria likes quiet nights"));
     }
 }

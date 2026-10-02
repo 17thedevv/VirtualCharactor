@@ -204,6 +204,50 @@ impl DecisionEngine for RuleDecisionEngine {
             ),
         ));
 
+        // Ambient Observation Candidate (when WorldState active window is present)
+        if let Some(ref world) = ctx.world {
+            if let Some(ref win) = world.active_window {
+                candidates.push(DecisionCandidate::new(
+                    Action::new(
+                        ActionType::AmbientObservation,
+                        format!("observing_{:?}", win.activity),
+                        format!("Nhận xét hoặc đồng cảm với hoạt động {}", win.title),
+                    ),
+                    0.80,
+                    0.70 + (curiosity * 0.15),
+                    "Phát hiện hoạt động trên máy tính của người dùng; đề xuất quan sát và tương tác tự nhiên.",
+                ));
+            }
+        }
+
+        // Autonomous Initiative & Quiet Companionship Candidates (for silence / idle triggers)
+        let is_silence = input_lower.trim().is_empty()
+            || input_lower.contains("[silence]")
+            || input_lower.contains("[idle]");
+
+        if is_silence {
+            candidates.push(DecisionCandidate::new(
+                Action::new(
+                    ActionType::AutonomousInitiative,
+                    "gentle_check_in",
+                    "Chủ động lên tiếng hỏi han sau khoảng lặng",
+                ),
+                0.85,
+                0.80 + (empathy * 0.15),
+                "Không gian yên lặng; chủ động mở lời tự nhiên.",
+            ));
+            candidates.push(DecisionCandidate::new(
+                Action::new(
+                    ActionType::QuietCompanionship,
+                    "peaceful_presence",
+                    "Hiện diện yên lặng nhẹ nhàng không ngắt quãng sự tập trung",
+                ),
+                0.80,
+                0.75,
+                "Người dùng có thể đang tập trung cao độ; ưu tiên đồng hành tĩnh lặng.",
+            ));
+        }
+
         // Default fallback if no specific triggers matched
         if candidates.is_empty() {
             candidates.push(DecisionCandidate::new(
@@ -264,12 +308,21 @@ impl DecisionEngine for RuleDecisionEngine {
         };
 
         // 5. Select Behavior Policy
-        let policy = match selected.action.action_type {
+        let mut policy = match selected.action.action_type {
             ActionType::EmotionalResonance => Some(BehaviorPolicy::warm_empathic()),
             ActionType::GentleBanter => Some(BehaviorPolicy::playful_witty()),
             ActionType::ThoughtfulExplanation => Some(BehaviorPolicy::contemplative_inquiry()),
             _ => Some(BehaviorPolicy::default()),
         };
+
+        // Attach dynamic pronoun & tone guideline based on RelationshipStage (CORE-04)
+        let (self_pronoun, user_pronoun, tone_hint) = rel_stage.recommended_honorifics();
+        if let Some(ref mut p) = policy {
+            p.pronoun_guideline = Some(format!(
+                "Xưng là '{}', gọi người dùng là '{}'. Sắc thái: {}.",
+                self_pronoun, user_pronoun, tone_hint
+            ));
+        }
 
         Ok(Decision::new(DecisionResult {
             selected_action: selected.action,

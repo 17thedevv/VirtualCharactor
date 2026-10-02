@@ -19,6 +19,8 @@ pub struct DecisionContext {
     pub relationship: Option<Relationship>,
     /// Retrieved relevant long-term and short-term memories
     pub memories: Vec<Memory>,
+    /// Optional sensed external world environment (desktop activity, time of day)
+    pub world: Option<crate::state::WorldState>,
 }
 
 impl DecisionContext {
@@ -37,6 +39,12 @@ impl DecisionContext {
             state,
             relationship,
             memories,
+            world: None,
         }
+    }
+
+    pub fn with_world(mut self, world: crate::state::WorldState) -> Self {
+        self.world = Some(world);
+        self
     }
 }

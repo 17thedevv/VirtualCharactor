@@ -30,6 +30,8 @@ pub struct AppState {
     pub temporal_gate: Arc<tokio::sync::Mutex<vc_runtime::attention::TemporalAttentionGate>>,
     pub embedder: Arc<dyn vc_core::rag::traits::EmbeddingProvider>,
     pub conversation_archiver: Arc<vc_runtime::rag::ConversationArchiver>,
+    pub world_state: Arc<RwLock<vc_core::state::world::WorldState>>,
+    pub consolidator: Arc<vc_runtime::consolidation::MemoryConsolidator>,
 }
 
 impl AppState {
@@ -208,7 +210,7 @@ impl AppState {
             runtime,
             emotion_engine,
             decision_engine,
-            storage,
+            storage: storage.clone(),
             tts_cache: Arc::new(RwLock::new(initial_tts_cache)),
             conversation_fsm: Arc::new(RwLock::new(
                 vc_runtime::conversation::ConversationStateMachine::new(),
@@ -224,7 +226,21 @@ impl AppState {
             )),
             embedder: embedder.clone(),
             conversation_archiver,
+            world_state: Arc::new(RwLock::new(vc_core::state::world::WorldState::default())),
+            consolidator: Arc::new(vc_runtime::consolidation::MemoryConsolidator::new(
+                storage.clone(),
+            )),
         }
+    }
+
+    /// Execute a memory consolidation and pruning cycle for a character.
+    pub fn run_memory_consolidation(
+        &self,
+        char_id: CharacterId,
+        now: u64,
+        elapsed: u64,
+    ) -> vc_core::error::Result<vc_runtime::consolidation::ConsolidationReport> {
+        self.consolidator.run_cycle(char_id, now, elapsed)
     }
 
     /// Reset state back to defaults and persist to database.

@@ -13,6 +13,8 @@ pub struct BehaviorPolicy {
     pub emotional_expression: String,
     /// Formality level [0.0 (intimate/casual) to 1.0 (ceremonious/formal)]
     pub formality: f32,
+    /// Guidance on addressing the user and self (e.g. "Xưng là em, gọi người dùng là anh")
+    pub pronoun_guideline: Option<String>,
 }
 
 impl Default for BehaviorPolicy {
@@ -23,6 +25,7 @@ impl Default for BehaviorPolicy {
             initiative: 0.60,
             emotional_expression: "gentle".into(),
             formality: 0.25,
+            pronoun_guideline: None,
         }
     }
 }
@@ -35,6 +38,7 @@ impl BehaviorPolicy {
             initiative: 0.40,
             emotional_expression: "empathic".into(),
             formality: 0.15,
+            pronoun_guideline: None,
         }
     }
 
@@ -45,6 +49,7 @@ impl BehaviorPolicy {
             initiative: 0.70,
             emotional_expression: "vibrant".into(),
             formality: 0.10,
+            pronoun_guideline: None,
         }
     }
 
@@ -55,6 +60,7 @@ impl BehaviorPolicy {
             initiative: 0.65,
             emotional_expression: "contemplative".into(),
             formality: 0.30,
+            pronoun_guideline: None,
         }
     }
 }
